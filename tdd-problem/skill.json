@@ -1,0 +1,6 @@
+{
+  "name": "tdd-problem",
+  "description": "TDD問題定義フェーズ: 問題領域を問題の言葉で確定し、plans/ に problem.md として保存（解決手段は書かない）",
+  "version": "1.0.0",
+  "type": "managed"
+}
