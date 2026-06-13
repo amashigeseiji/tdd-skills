@@ -84,7 +84,7 @@ find plans -name "problem.md" -type f 2>/dev/null
   /tdd-design
 
 設計フェーズでは、この problem.md を基に
-問題を小問題へ分解し、解決の道具立てを設計します。
+インタラクションの系を命名し、それを支える要素を案出します。
 （テストは書きません。テストは実装フェーズ /tdd-run の仕事です）
 ```
 
