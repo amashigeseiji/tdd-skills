@@ -1,6 +1,0 @@
-{
-  "name": "tdd-design",
-  "description": "TDD設計フェーズ: 確定済み problem.md を基に、問題を小問題へ分解し解決の道具立て（関数・オブジェクト等）を設計して design.md に記述。テストの設計・実装は行わない",
-  "version": "2.1.0",
-  "type": "managed"
-}
