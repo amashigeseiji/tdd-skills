@@ -83,7 +83,7 @@ find plans -name "problem.md" -type f 2>/dev/null
 
   /tdd-run
 
-実装フェーズでは、problem.md を基に語彙を定義し（/tdd-vocab init）、
+実装フェーズでは、problem.md を基に語彙を定義し（/tdd-vocab plan）、
 「できる」のツリーを構成してテスト駆動で実装します。
 ```
 

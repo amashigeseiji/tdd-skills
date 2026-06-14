@@ -18,9 +18,9 @@ cat plans/<project>/dictionary.md 2>/dev/null
 
 problem.md が無い場合: `/tdd-problem` で問題を定義してください。
 
-**docs/dictionary.md が存在しない場合（新規プロジェクト）:**
-ツリーを構成する前に `/tdd-vocab init` を呼ぶ。
-ただし、この時点での語彙定義は**作業仮説**なので `plans/<project>/dictionary.md` に書く
+**plans/<project>/dictionary.md が存在しない場合（新規 problem に取り組む場合）:**
+ツリーを構成する前に `/tdd-vocab plan` を呼ぶ。
+この時点での語彙定義は**作業仮説**なので `plans/<project>/dictionary.md` に書く
 （`docs/dictionary.md` には書かない）。
 wip の語彙が仮のガードレールとして機能する。
 実装・受け入れを経た後、`/tdd-vocab promote` で stable に昇格する。
@@ -115,7 +115,7 @@ docs/dictionary.md と plans/<project>/dictionary.md を参照し、
 
 **テスト骨格の生成:**
 
-テストファイルは `tests/<dir>/` に置く（`<dir>` は tdd-vocab init で確定したコンテキストの英語 dir 名）。
+テストファイルは `tests/<dir>/` に置く（`<dir>` は tdd-vocab plan で確定したコンテキストの英語 dir 名）。
 ツリーの各ノードに対応する `describe()` ブロックを、入れ子構造を保ったままテストファイルに書く。
 `it()` の中身は空（TODO）のまま。
 
