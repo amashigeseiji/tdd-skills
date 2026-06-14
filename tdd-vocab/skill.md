@@ -341,7 +341,21 @@ function buildGrid(rows, cols) { ... }
 
 **実装・テストとの整合性:**
 
-`node ${CLAUDE_SKILL_DIR}/scripts/check-vocab.js [test-dir]` を実行すると以下を確認できる（辞書ファイルだけでは確認できない）。`test-dir` 省略時は `tests/` を使用:
+以下の順で2つのスクリプトを実行する（辞書ファイルだけでは確認できない）。
+
+```bash
+# 1. カバレッジマップを生成（語彙 → 実装 → テストの接続状況）
+node ${CLAUDE_SKILL_DIR}/scripts/generate-map.js [src-dirs]
+# src-dirs 省略時は src, lib, packages を探索。docs/map.json に出力される。
+
+# 2. 整合性チェック（壊れ・欠けを検出）
+node ${CLAUDE_SKILL_DIR}/scripts/check-vocab.js [test-dir]
+# test-dir 省略時は tests/ を使用。
+```
+
+`generate-map.js` が出す「繋がっているもの（正側）」と `check-vocab.js` が出す「壊れているもの・欠けているもの（負側）」を合わせて読み、整合性の全体像を報告する。
+
+`check-vocab.js` が確認する内容:
 - `@vocab` の参照先エントリが辞書に存在するか
 - `@test` の参照先ファイルが存在するか
 - stable エントリに対応する `@vocab` を持つ実装が存在するか（逆引き）
