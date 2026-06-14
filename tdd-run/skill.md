@@ -103,6 +103,7 @@ docs/dictionary.md と plans/<project>/dictionary.md を参照し、
 
 **テスト骨格の生成:**
 
+テストファイルは `tests/<dir>/` に置く（`<dir>` は tdd-vocab init で確定したコンテキストの英語 dir 名）。
 ツリーの各ノードに対応する `describe()` ブロックを、入れ子構造を保ったままテストファイルに書く。
 `it()` の中身は空（TODO）のまま。
 
@@ -148,6 +149,16 @@ describe('A は aaa ができる', () => {
     // 実装より先にインターフェースを定める
   })
 })
+```
+
+**実装への参照を書く:**
+
+語彙概念を実現する関数・クラスには、その直前に `@vocab` と `@test` を書く:
+
+```javascript
+// @vocab: A (plans/<plan>/dictionary.md#A)
+// @test: tests/<dir>/<feature>.test.js
+function aaa(...) { ... }
 ```
 
 **テスト実行コマンド:**
