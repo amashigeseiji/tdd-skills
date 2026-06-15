@@ -1,0 +1,6 @@
+{
+  "name": "tdd-refactor",
+  "description": "TDDリファクタリング: 辞書・テスト・実装・problem を横断して理解とコードのズレを発見し、コードに転写する。別セッションで起動して実装の文脈から離れた視点を確保する",
+  "version": "1.0.0",
+  "type": "managed"
+}
