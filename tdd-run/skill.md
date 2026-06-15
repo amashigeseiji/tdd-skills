@@ -80,6 +80,10 @@ X は xxx ができる  ← ルートノード（問題解決の仮説）
 **名前が先にあり、その名前が何をできるかが続きます。**
 「X とは xxx ができるような何かだ」——この問いに答えることが、ノードを置く行為です。
 
+**ノードの名前は英語識別子で定義する。**
+名前を付けることはその対象を存在させる宣言であり、ここで定義した名前がそのまま `describe()` の主語と実装の関数・クラス・モジュール名になる。
+変換しない——`frontmatterTemplateLoader` と書いたなら、実装も `frontmatterTemplateLoader` である。
+
 **「できる」の述語は振る舞いを書く——手段は書かない。**
 
 | NG | OK |
@@ -125,6 +129,7 @@ docs/dictionary.md と plans/<project>/dictionary.md を参照し、
 
 既存語彙で表現できない場合、新しいXを定義する:
 「X とは xxx ができるような何かだ」という形で表現する。
+名前は英語識別子で定める（例: `frontmatterTemplateLoader`）。
 名前が定まったら `plans/<project>/dictionary.md` のアプリケーションドメインに書く:
 
 ```markdown
@@ -143,6 +148,23 @@ docs/dictionary.md と plans/<project>/dictionary.md を参照し、
 
 「X が xxx できるためには何が必要か」を分解する。各ノードを一行で。
 末端（直接実装できる粒度）まで続ける。
+
+分解が終わったら、ツリーを確定する前に**技術語スキャン**を行う:
+
+全ノードの述語（「は〜ができる」の〜の部分）を走査し、以下のカテゴリの語が含まれていないかを確認する:
+- URL・エンドポイント・HTTPメソッド
+- ライブラリ・フレームワーク名
+- ストレージ種別（localStorage・DB・S3等）
+- 通信プロトコル・ファイルフォーマット
+
+含まれていれば「その述語が表す振る舞いは何か」を問い直し、技術語を排除した述語に書き直してからツリーを確定する。
+
+次に**scaffolding可能性チェック**を行う:
+
+全ノードの主語について、それが実装上の識別子（例えば関数名・クラス名・モジュール名）として成立するかを確認する。
+成立しないノード（URLパス・技術的操作の記述など）はツリーに含めない——主語を英語識別子として定義し直してから再提出する。
+
+このチェックは「テストが書けない」という判断が実装フェーズで起きる前に、その原因を構造的に排除する。
 
 **分解が終わったらユーザーに提示し、確認を得てから次に進む。**
 **[auto] ユーザーへの提示なしに進む。決定したツリーを `auto-decisions.md` に記録する。**
@@ -183,12 +205,14 @@ test-tree.md が作れたら、ツリーの名前を起点として2つを同時
 ツリーの各ノードに対応する `describe()` ブロックを、入れ子構造を保ったままテストファイルに書く。
 `it()` の中身は空（TODO）のまま。
 
+ノードの英語識別子を `describe()` の主語にそのまま使う:
+
 ```javascript
-describe('ルートノード は xxx ができる', () => {
-  describe('A は aaa ができる', () => {
+describe('frontmatterTemplateLoader は xxx ができる', () => {
+  describe('templateMatcher は aaa ができる', () => {
     it('TODO', () => {})
   })
-  describe('B は bbb ができる', () => {
+  describe('frontmatterStringBuilder は bbb ができる', () => {
     it('TODO', () => {})
   })
 })
@@ -196,6 +220,37 @@ describe('ルートノード は xxx ができる', () => {
 
 この時点でツリーとテストファイルは1対1に対応している。
 **ノードが骨格に現れないまま実装に進むことはしない。**
+
+**スタブの生成（scaffolding）:**
+
+テスト骨格と同時に、手順4のモジュール境界に従って実装ファイルに空のスタブを書く。
+スタブは `throw new Error('not implemented')` だけを持ち、名前は `describe()` の主語と一致させる。
+
+```javascript
+// src/<dir>/frontmatterTemplateLoader.js
+
+/**
+ * @vocab frontmatterTemplateLoader (plans/<project>/dictionary.md#frontmatterTemplateLoader)
+ * @test tests/<dir>/<feature>.test.js
+ */
+export function frontmatterTemplateLoader() { throw new Error('not implemented') }
+
+/**
+ * @vocab templateMatcher (plans/<project>/dictionary.md#templateMatcher)
+ * @test tests/<dir>/<feature>.test.js
+ */
+function templateMatcher() { throw new Error('not implemented') }
+
+/**
+ * @vocab frontmatterStringBuilder (plans/<project>/dictionary.md#frontmatterStringBuilder)
+ * @test tests/<dir>/<feature>.test.js
+ */
+function frontmatterStringBuilder() { throw new Error('not implemented') }
+```
+
+名前の変換はしない。ツリーで宣言した名前がそのまま実装の名前になる。
+この時点で語彙エントリとテストファイルパスは確定しているので、アノテーションをスタブに書いておく。
+スタブが存在することで、実装フェーズで「どの関数に書くか」を決める必要がなくなる。
 
 **モジュール境界の確認:**
 
@@ -245,15 +300,10 @@ describe('A は aaa ができる', () => {
 })
 ```
 
-**実装への参照を書く:**
+**実装への参照:**
 
-語彙概念を実現する関数・クラスには、その直前に `@vocab` と `@test` を書く:
-
-```javascript
-// @vocab: A (plans/<plan>/dictionary.md#A)
-// @test: tests/<dir>/<feature>.test.js
-function aaa(...) { ... }
-```
+`@vocab` と `@test` アノテーションは手順4のscaffoldingで既に書いてある。
+実装を埋める際に削除・変更しない。
 
 **テスト実行コマンド:**
 
@@ -322,8 +372,10 @@ green になったらユーザーに確認を求める。
 
 - **語彙 → テスト**: 語彙に登録された名前が `describe()` に現れているか。
   消えた名前は「静かに解消された」ので findings に記録する。
-- **テスト → 実装**: `describe()` の主語名が実装の関数・モジュール・クラス名と対応しているか。
-  対応しているなら語彙エントリの「関係」フィールドに実装参照を書き足す。
+- **テスト → 実装**: `describe()` の主語名が実装の関数・モジュール・クラス名と一致しているか。
+  手順4のscaffoldingで名前は固定されているはずなので、ここで乖離があれば手順4の段階で変換が起きている。
+  乖離を発見したら findings に記録し、実装を正しい名前に修正する。
+  一致しているなら語彙エントリの「関係」フィールドに実装参照を書き足す。
 - **実装 → 語彙**: 実装に現れた装置名のうち語彙未登録のものがあれば追加を検討する。
 - **語彙 → src**: 確定した実装パスを各語彙エントリの `**src:**` フィールドに記入する。
   手順 4 のモジュール境界確認で決めたファイル配置と一致しているかも確認する。
