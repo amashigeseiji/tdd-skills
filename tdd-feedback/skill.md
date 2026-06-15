@@ -29,12 +29,12 @@ problem.md の「解決したと言える状態」や tdd-run が残した利用
 1. **変更が利用可能であること**（tdd-run が完了し、実アプリで動かせる）。
 2. **実際に使ってから**このセッションを立ち上げること。未使用なら、聞いても「想像（＝意見）」
    しか出ず接地しない。その場合はインタビューを*待つ*か、弱い「ウォークスルー」だと明示する。
-3. **利用仮説があること**（problem.md の「解決したと言える状態」、または tdd-run が
-   「使ったらこうなるはず／こうなったら外れ」を残している）。
+3. **利用仮説があること**（test-tree.md の「利用仮説」、または problem.md の「解決したと言える状態」）。
    無ければ、problem.md の「解決したと言える状態」からその場で最小限を立ててから使ってもらう。
 
 ```bash
 cat plans/<project>/problem.md
+cat plans/<project>/test-tree.md 2>/dev/null
 cat plans/<project>/findings.md 2>/dev/null
 cat docs/wip/dictionary.md 2>/dev/null
 ```
@@ -51,7 +51,7 @@ cat docs/wip/dictionary.md 2>/dev/null
 
 ### 2. 利用仮説の照合
 
-problem.md の「解決したと言える状態」や tdd-run が残した利用仮説に対し、実際に起きたことはどちらだったか。
+test-tree.md の利用仮説（なければ problem.md の「解決したと言える状態」）に対し、実際に起きたことはどちらだったか。
 - 期待どおりか、外れ側か、どちらとも言えないか
 - 利用仮説そのものが的外れだった（測る相手が違った）なら、それも記録
 
@@ -80,7 +80,7 @@ problem.md の「解決したと言える状態」や tdd-run が残した利用
 ### 5. 語彙の更新（必要な場合）
 
 フィードバックを通じて概念の再解釈が生まれたとき（「グリッドという言葉の意味がずれていた」等）、
-`/tdd-vocab add` を呼んで wip に登録する。
+`plans/<project>/dictionary.md` に直接追記して wip に登録する。
 wip に積まれた概念の昇格は `/tdd-vocab promote` でユーザーが判断する。
 
 ### 6. 次フェーズ
