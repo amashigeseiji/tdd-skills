@@ -61,10 +61,10 @@ function scanImplementations(dir) {
         const tests = [];
         for (const line of lines) {
           // @vocab: 概念名 (path/to/dictionary.md#概念名)
-          const vm = line.match(/@vocab:\s+(.+?)\s+\((.+?)\)/);
+          const vm = line.match(/@vocab:?\s+(.+?)\s+\((.+?)\)/);
           if (vm) vocabs.push({ name: vm[1].trim(), ref: vm[2].trim() });
           // @test: path/to/file.test.js
-          const tm = line.match(/@test:\s+(.+)/);
+          const tm = line.match(/@test:?\s+(.+)/);
           if (tm) tests.push(tm[1].trim());
         }
         if (vocabs.length || tests.length) results.push({ file: full, vocabs, tests });

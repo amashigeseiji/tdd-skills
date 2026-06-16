@@ -80,9 +80,9 @@ X は xxx ができる  ← ルートノード（問題解決の仮説）
 **名前が先にあり、その名前が何をできるかが続きます。**
 「X とは xxx ができるような何かだ」——この問いに答えることが、ノードを置く行為です。
 
-**ノードの名前は英語識別子で定義する。**
-名前を付けることはその対象を存在させる宣言であり、ここで定義した名前がそのまま `describe()` の主語と実装の関数・クラス・モジュール名になる。
-変換しない——`frontmatterTemplateLoader` と書いたなら、実装も `frontmatterTemplateLoader` である。
+**ノードの名前は日本語で書く。**
+「X とは〜ができるような何かだ」という問いに答える概念名——まだ存在しない対象への宣言。
+日本語で書くことで、実装の識別子（関数名・クラス名）がノード名に紛れ込むことを防ぐ。
 
 **「できる」の述語は振る舞いを書く——手段は書かない。**
 
@@ -129,12 +129,13 @@ docs/dictionary.md と plans/<project>/dictionary.md を参照し、
 
 既存語彙で表現できない場合、新しいXを定義する:
 「X とは xxx ができるような何かだ」という形で表現する。
-名前は英語識別子で定める（例: `frontmatterTemplateLoader`）。
+名前は**日本語の概念名**で定める（例: `フロントマターテンプレートローダー`）。
 名前が定まったら `plans/<project>/dictionary.md` のアプリケーションドメインに書く:
 
 ```markdown
-### X（名前）
+### <概念名>
 
+en: EnglishName
 **定義:** xxx ができるもの
 **関係:** （他の概念との関係を書く）
 ```
@@ -161,8 +162,8 @@ docs/dictionary.md と plans/<project>/dictionary.md を参照し、
 
 次に**scaffolding可能性チェック**を行う:
 
-全ノードの主語について、それが実装上の識別子（例えば関数名・クラス名・モジュール名）として成立するかを確認する。
-成立しないノード（URLパス・技術的操作の記述など）はツリーに含めない——主語を英語識別子として定義し直してから再提出する。
+全ノードの主語が日本語の概念名として成立するかを確認する。
+URLパス・技術的な操作の記述・camelCase の識別子が紛れていれば、概念として語れる名前に問い直す。
 
 このチェックは「テストが書けない」という判断が実装フェーズで起きる前に、その原因を構造的に排除する。
 
@@ -205,14 +206,14 @@ test-tree.md が作れたら、ツリーの名前を起点として2つを同時
 ツリーの各ノードに対応する `describe()` ブロックを、入れ子構造を保ったままテストファイルに書く。
 `it()` の中身は空（TODO）のまま。
 
-ノードの英語識別子を `describe()` の主語にそのまま使う:
+テストの `describe()` の主語には日本語のノード名をそのまま使う:
 
 ```javascript
-describe('frontmatterTemplateLoader は xxx ができる', () => {
-  describe('templateMatcher は aaa ができる', () => {
+describe('フロントマターテンプレートローダーは xxx ができる', () => {
+  describe('テンプレートマッチャーは aaa ができる', () => {
     it('TODO', () => {})
   })
-  describe('frontmatterStringBuilder は bbb ができる', () => {
+  describe('フロントマター文字列ビルダーは bbb ができる', () => {
     it('TODO', () => {})
   })
 })
@@ -224,31 +225,35 @@ describe('frontmatterTemplateLoader は xxx ができる', () => {
 **スタブの生成（scaffolding）:**
 
 テスト骨格と同時に、手順4のモジュール境界に従って実装ファイルに空のスタブを書く。
-スタブは `throw new Error('not implemented')` だけを持ち、名前は `describe()` の主語と一致させる。
+スタブは `throw new Error('not implemented')` だけを持ち、名前は**日本語の`<主語>`を直訳した英語識別子**にする。
+
+直訳——実装を想像して命名するのではなく、日本語の概念名を音訳・意訳で変換する（例: `テンプレートマッチャー` → `TemplateMatcher`）。
+辞書の `en:` フィールドと同じ PascalCase で起こす。実装ファイル内での識別子（lowerCamelCase・snake_case 等）への変換はプロジェクト規約による。
 
 ```javascript
 // src/<dir>/frontmatterTemplateLoader.js
+// 日本語の主語「フロントマターテンプレートローダー」を直訳
 
 /**
- * @vocab frontmatterTemplateLoader (plans/<project>/dictionary.md#frontmatterTemplateLoader)
+ * @vocab FrontmatterTemplateLoader (plans/<project>/dictionary.md)
  * @test tests/<dir>/<feature>.test.js
  */
 export function frontmatterTemplateLoader() { throw new Error('not implemented') }
 
 /**
- * @vocab templateMatcher (plans/<project>/dictionary.md#templateMatcher)
+ * @vocab TemplateMatcher (plans/<project>/dictionary.md)
  * @test tests/<dir>/<feature>.test.js
  */
 function templateMatcher() { throw new Error('not implemented') }
 
 /**
- * @vocab frontmatterStringBuilder (plans/<project>/dictionary.md#frontmatterStringBuilder)
+ * @vocab FrontmatterStringBuilder (plans/<project>/dictionary.md)
  * @test tests/<dir>/<feature>.test.js
  */
 function frontmatterStringBuilder() { throw new Error('not implemented') }
 ```
 
-名前の変換はしない。ツリーで宣言した名前がそのまま実装の名前になる。
+`describe()` の日本語名と実装の英語識別子は対応している——概念の宣言（日本語）と識別子の宣言（英語）が別フェーズで行われる。
 この時点で語彙エントリとテストファイルパスは確定しているので、アノテーションをスタブに書いておく。
 スタブが存在することで、実装フェーズで「どの関数に書くか」を決める必要がなくなる。
 

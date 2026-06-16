@@ -126,6 +126,7 @@ ls packages/ 2>/dev/null || true
 
 ### <概念名>
 
+en: EnglishName
 **定義:** ...
 **関係:** ...
 ```
@@ -199,6 +200,7 @@ promote でコンテキストが吸収される場合はディレクトリ移動
 
 ### <概念名>
 
+en: EnglishName
 **定義:** ...
 **関係:** ...
 ```
@@ -303,8 +305,10 @@ cat plans/*/dictionary.md 2>/dev/null
 関数・クラスの直前に `@vocab` と `@test` を書く:
 
 ```javascript
-// @vocab: グリッドビルダー (docs/dictionary.md#グリッドビルダー)
-// @test: tests/grid-canvas/grid-builder.test.js
+/**
+ * @vocab GridBuilder (docs/dictionary.md#グリッドビルダー)
+ * @test tests/grid-canvas/grid-builder.test.js
+ */
 function buildGrid(rows, cols) { ... }
 ```
 
@@ -388,6 +392,7 @@ node ${CLAUDE_SKILL_DIR}/scripts/check-vocab.js [test-dir]
 
 ### <概念名>
 
+en: EnglishName
 **定義:** <何であるか。他の概念を参照しながら記述する>
 **関係:**
 - `contains`: [概念名](#概念名) — <補足>
@@ -401,11 +406,16 @@ node ${CLAUDE_SKILL_DIR}/scripts/check-vocab.js [test-dir]
 
 ### <概念名>
 
+en: EnglishName
 **定義:** <何をする装置か。アプリドメイン概念を参照しながら記述する>
 **関係:**
 - `references`: [概念名](#概念名) — <入出力関係の補足>
 **src:** `src/<dir>/<file>.js`（ウォークスルーで記入）
 ```
+
+**`en:` フィールドについて:**
+日本語の概念名を直訳した英語名を PascalCase で記述する（例: `テンプレートマッチャー` → `TemplateMatcher`）。
+実装の識別子（lowerCamelCase・snake_case 等）への変換はプロジェクト規約による。
 
 **関係キーの意味:**
 - `contains` — このエントリがライフサイクルを統括する下位概念
@@ -475,6 +485,7 @@ problem.md の `コンテキスト:` フィールドと対応する。
 
 ### <概念名>
 
+en: EnglishName
 **定義:** <何であるか>
 **関係:**
 - `contains`: [概念名](#概念名) — <補足>
@@ -491,6 +502,7 @@ problem.md の `コンテキスト:` フィールドと対応する。
 
 ### <概念名>
 
+en: EnglishName
 **定義:** <何をする装置か（暫定でよい）>
 **関係:**
 - `references`: [概念名](#概念名) — <アプリドメイン概念との関係。ウォークスルーで補完する場合はその旨を書く>
