@@ -1,0 +1,6 @@
+{
+  "name": "tdd-userstory",
+  "description": "ユーザーストーリーの定義（BDD形式）と受け入れテストの実行。create: problem.md からストーリーを生成。run: ストーリーをテストコードに変換して実行",
+  "version": "1.0.0",
+  "type": "managed"
+}
