@@ -77,23 +77,28 @@ Agent ツールでサブエージェントを起動する。
 
 ---
 
-## Phase 3: tdd-refactor
+## Phase 3: tdd-feedback（成果物レビュー）
 
 tdd-run が成功したら、Agent ツールで別サブエージェントを起動する。
 
+実行範囲: 成果物レビュー（語彙評価・ソリューション構造評価）のみ。
+利用インタビューとクローズ判断はユーザー対話が必要なため Phase 4 で行う。
+
 **エージェントへのプロンプト:**
 
-> `${CLAUDE_SKILL_DIR}/../tdd-refactor/skill.md` を読み、`plans/<project>/` を対象に tdd-refactor を実行してください。
+> `${CLAUDE_SKILL_DIR}/../tdd-feedback/skill.md` を読み、`plans/<project>/` を対象に
+> tdd-feedback の **手順1「成果物レビュー」のみ**を実行してください。
 >
-> 実行範囲: 観察（5視点）と計画の作成まで。変更は実施しない。
+> - 語彙評価（plans/<project>/dictionary.md と problem.md の照合）
+> - ソリューション構造評価（test-tree.md と observations.md の確認）
 >
-> 完了したら計画を `plans/<project>/refactor-plan.md` に出力し、以下を返してください:
-> - 発見した問題の件数（カテゴリ別）
-> - refactor-plan.md のパス
+> 完了したら以下を返してください:
+> - 成果物レビューのレポート（語彙・構造・観察メモの各評価）
+> - promote 可否の判断（可: promote 実行済み / 否: 保留した理由）
 
 ---
 
-## Phase 4: 一括報告
+## Phase 4: 一括報告とフィードバック継続
 
 以下を読んで報告を組み立てる:
 
@@ -101,7 +106,7 @@ tdd-run が成功したら、Agent ツールで別サブエージェントを起
 cat plans/<project>/test-tree.md
 cat plans/<project>/auto-decisions.md
 cat plans/<project>/dictionary.md
-cat plans/<project>/refactor-plan.md 2>/dev/null
+cat plans/<project>/observations.md 2>/dev/null
 ```
 
 **報告フォーマット:**
@@ -115,39 +120,23 @@ cat plans/<project>/refactor-plan.md 2>/dev/null
 ### 自律的に決定した事項
 <auto-decisions.md の内容>
 
-### 語彙（promote 候補）
-<plans/<project>/dictionary.md のエントリ一覧>
-
-### リファクタリング計画
-<refactor-plan.md の内容、または「問題なし」>
+### 成果物レビュー結果
+<Phase 3 のレポート>
 
 ---
-次のアクションを選んでください:
-- [1] 語彙を promote する（/tdd-vocab promote）
-- [2] リファクタリング計画を承認して実施する
-- [3] 両方
-- [4] 見送る
+🚀 次のアクション:
+- [1] 利用インタビューを始める（/tdd-feedback 手順2〜4 を続けて実行）
+- [2] 見送る（後で /tdd-feedback を単独で起動する）
 ```
 
 ---
 
-## Phase 5: promote と refactor の実施
+## Phase 5: 利用インタビューとクローズ判断
 
-ユーザーの選択に応じて実行する。
+ユーザーが [1] を選んだ場合、`${CLAUDE_SKILL_DIR}/../tdd-feedback/skill.md` の
+手順2（利用インタビュー）〜手順4（クローズ判断）を続けて実行する。
 
-**[1] promote:**
-`${CLAUDE_SKILL_DIR}/../tdd-vocab/skill.md` の `/tdd-vocab promote` 手順に従い、
-`plans/<project>/dictionary.md` のエントリをユーザーと確認しながら `docs/dictionary.md` へ昇格する。
-
-**[2] refactor 実施:**
-`plans/<project>/refactor-plan.md` の承認済み項目を実施する。
-実施後にテストを実行して全 green を確認する。
-
-**[3] 両方:**
-promote → refactor の順で実施する。
-
-**[4] 見送る:**
-現状の成果物をそのまま残して終了する。
+[2] を選んだ場合は現状の成果物をそのまま残して終了する。
 
 ---
 
@@ -166,6 +155,7 @@ promote → refactor の順で実施する。
 1. **実装コード** — テストが通り、入口に組み込まれた状態
 2. **テスト（「できる」のツリー）**
 3. `plans/<project>/test-tree.md` — テストツリーと利用仮説
-4. `plans/<project>/dictionary.md` — wip 語彙
+4. `plans/<project>/dictionary.md` — wip 語彙（promote 済みの場合は docs/dictionary.md にも反映）
 5. `plans/<project>/auto-decisions.md` — 自律決定の記録
-6. `plans/<project>/refactor-plan.md` — リファクタリング計画
+6. `plans/<project>/observations.md` — 実装中の気づき
+7. `plans/<project>/findings.md` — フィードバック結果（利用インタビューを実施した場合）
