@@ -47,11 +47,19 @@ auto モードで自律的に決定した事項は `plans/<project>/auto-decisio
 
 セッション最初に行う（ファイル読み込みより前）。`<project>` は `plans/` 配下のディレクトリ名。
 
+ブランチ `tdd/<project>` が存在するかで分岐する:
+
 ```bash
+# 新規（初回）
 git worktree add ./tdd/<project> -b tdd/<project>
 mkdir -p ./tdd/<project>/plans
 cp -r plans/<project> ./tdd/<project>/plans/
+
+# 再利用（tdd-feedback の B「同一プランへの戻し」後）
+git worktree add ./tdd/<project> tdd/<project>
 ```
+
+再利用の場合、plans/ は前サイクルのコミットに含まれているためコピー不要。
 
 以降の作業（ファイル読み込み・テスト・実装）はすべてこのworktree内で行う。
 
