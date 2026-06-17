@@ -124,7 +124,8 @@ mv plans/<project>/ plans/archives/<project>/
 `.claude/tdd/config.json` の `commit_plans` が `true` であれば、アーカイブをコミットする:
 
 ```bash
-git add plans/archives/<project>/
+git add plans/archives/<project>/   # アーカイブ先（新ファイル）
+git add -u                           # 移動元の削除・辞書更新・@vocab パス修正
 git commit -m "archive: <project>"
 ```
 
