@@ -48,7 +48,7 @@ auto モードで自律的に決定した事項は `plans/<project>/auto-decisio
 セッション最初に行う（ファイル読み込みより前）。`<project>` は `plans/` 配下のディレクトリ名。
 
 ```bash
-git worktree add ../tdd-<project> -b tdd/<project>
+git worktree add ./tdd/<project> -b tdd/<project>
 ```
 
 以降の作業（ファイル読み込み・テスト・実装）はすべてこのworktree内で行う。
@@ -509,7 +509,7 @@ git commit -m "tdd(<project>): <problem.md の1行タイトル>"
 コミット後、worktree を削除する:
 
 ```bash
-git worktree remove ../tdd-<project>
+git worktree remove ./tdd/<project>
 ```
 
 ---
