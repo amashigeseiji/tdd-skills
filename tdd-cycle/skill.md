@@ -79,29 +79,13 @@ Agent ツールでサブエージェントを起動する。
 
 ## Phase 3: tdd-feedback
 
-tdd-run が成功したら、Agent ツールでサブエージェントを起動する。
-サブエージェントは `./tdd/<project>/` を作業ディレクトリとして動作する。
+tdd-run が成功したら、Skill ツールで `/tdd-feedback` を直接呼び出す（サブエージェント不可）。
 
-**エージェントへのプロンプト:**
-
-> `${CLAUDE_SKILL_DIR}/../tdd-feedback/skill.md` を読み、project `<project>` の tdd-feedback を実行してください。
->
-> 作業ディレクトリは `./tdd/<project>/` です。`plans/<project>/` 等のパスはこのディレクトリを基点として解釈してください。
-> 全手順（成果物レビュー・利用インタビュー・クローズ判断）を実行してください。
-
----
-
-## Phase 4: クリーンアップ
-
-tdd-feedback 完了後、worktree を削除する:
-
-```bash
-git worktree remove ./tdd/<project>
+```
+Skill("tdd-feedback", "<project>")
 ```
 
-ブランチ `tdd/<project>` は削除しない:
-- **A/C（クローズ・新規移行）**: PR 作成のために残す
-- **B（同一プランへの戻し）**: 次サイクルの tdd-run が既存ブランチを再利用する
+tdd-feedback は利用インタビューでユーザーとの対話が必要なため、Agent 経由ではなくメインスレッドで実行する。
 
 ---
 

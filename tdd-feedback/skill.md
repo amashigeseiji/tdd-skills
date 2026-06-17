@@ -130,6 +130,14 @@ git commit -m "archive: <project>"
 
 `config.json` が存在しない場合、または `commit_plans` が `false` の場合はコミットしない。
 
+worktree `./tdd/<project>/` が残っている場合は削除する（ブランチ `tdd/<project>` は残す）:
+
+```bash
+if [ -d "./tdd/<project>" ]; then
+  git worktree remove ./tdd/<project>
+fi
+```
+
 #### B. 同一プランへの戻し
 
 条件: 既存の problem が明らかに未達（problem の定義に問題があるか、解法に問題がある）
