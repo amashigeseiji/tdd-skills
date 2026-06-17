@@ -116,6 +116,64 @@ find tests -name "*.spec.*" -o -name "*.test.*" 2>/dev/null | head -5
 | `package.json` の dependencies/devDependencies に `jest` | Jest |
 | 上記のいずれも検出できない | フォールバック（後述） |
 
+#### 2.5. playwright.config の webServer を設定する（Playwright の場合のみ）
+
+Playwright はテスト実行前後のサーバー起動・停止を `webServer` オプションで管理できる。
+このステップで設定しておくことで、手順4のテスト実行時に Playwright が自動的に処理する。
+
+```bash
+cat playwright.config.*
+```
+
+**`webServer` がすでに設定されている場合:** このステップをスキップする。
+
+**設定されていない場合:** プロジェクトの種別からコマンドとポートを推定し、`playwright.config.*` に追記する。
+
+まずプロジェクト種別を判定するために以下を確認する:
+
+```bash
+ls package.json Gemfile mix.exs go.mod requirements.txt pyproject.toml Makefile Procfile 2>/dev/null
+```
+
+推定の優先順位:
+
+| 検出ファイル | 推定コマンド | 推定ポート |
+|------------|------------|----------|
+| `package.json`（`scripts.dev` あり） | `npm run dev`（または `yarn dev` / `bun dev`） | package.json または設定ファイルから読む |
+| `package.json`（`scripts.start` のみ） | `npm start` | 同上 |
+| `Procfile` | `web:` の行のコマンド | Procfile から読む |
+| `Makefile`（`dev` / `serve` ターゲットあり） | `make dev` | Makefile から読む |
+| `Gemfile` + `config/routes.rb` | `bin/rails server` | 3000 |
+| `manage.py` | `python manage.py runserver` | 8000 |
+| `mix.exs` | `mix phx.server` | 4000 |
+| `go.mod` | `go run .` | ソースから推定、不明なら確認 |
+
+ポートがファイルから確認できない場合はユーザーに確認する。
+
+追記する内容:
+
+```typescript
+// playwright.config.ts への追記例
+import { defineConfig } from '@playwright/test'
+
+export default defineConfig({
+  // ... 既存の設定 ...
+  webServer: {
+    command: '<推定したコマンド>',
+    port: <推定したポート>,
+    reuseExistingServer: !process.env.CI,
+  },
+})
+```
+
+`reuseExistingServer: !process.env.CI` の意味:
+- ローカル環境: 指定ポートがすでに使用中であれば `command` を実行せずそのまま使う。**ポートバッティングはここで防がれる。**
+- CI 環境: 常に `command` から新しく起動する
+
+`port` の値はユーザーが起動しているサーバーと一致している必要がある。ずれていると「既存なし」と判断されて二重起動が起きる。推定したポートが不確かな場合はユーザーに確認してから設定する。
+
+これにより「起動中なら使う、起動中でなければ起動する、テスト終了後に停止する」を Playwright が管理する。
+
 #### 3. テストファイルを生成する
 
 出力先: `tests/acceptance/<project>.spec.ts`（Playwright）または `tests/acceptance/<project>.test.ts`（その他）
