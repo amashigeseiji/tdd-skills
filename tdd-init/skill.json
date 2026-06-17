@@ -1,0 +1,6 @@
+{
+  "name": "tdd-init",
+  "description": "新しいリポジトリにTDDスキルを初めて導入するときに一度だけ実行する。plans コミット設定の確定・scaffold.sh 生成・語彙辞書の初期化を順に行う",
+  "version": "1.0.0",
+  "type": "managed"
+}
