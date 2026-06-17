@@ -49,6 +49,8 @@ auto モードで自律的に決定した事項は `plans/<project>/auto-decisio
 
 ```bash
 git worktree add ./tdd/<project> -b tdd/<project>
+mkdir -p ./tdd/<project>/plans
+cp -r plans/<project> ./tdd/<project>/plans/
 ```
 
 以降の作業（ファイル読み込み・テスト・実装）はすべてこのworktree内で行う。

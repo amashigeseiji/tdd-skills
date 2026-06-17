@@ -59,7 +59,7 @@ CONTEXT="$3"
 SRC_ROOT="src"   # 調査結果で置き換える
 TEST_ROOT="tests" # 調査結果で置き換える
 
-SUBJECT_FILE="$(echo "$SUBJECT" | sed 's/^\(.\)/\l\1/')"
+SUBJECT_FILE="$(echo "$SUBJECT" | awk '{print tolower(substr($0,1,1)) substr($0,2)}')"
 SRC_FILE="${SRC_ROOT}/${CONTEXT}/${SUBJECT_FILE}.js"
 TEST_FILE="${TEST_ROOT}/${CONTEXT}/${SUBJECT_FILE}.test.js"
 
