@@ -43,6 +43,18 @@ auto モードで自律的に決定した事項は `plans/<project>/auto-decisio
 
 ---
 
+## worktree のセットアップ
+
+セッション最初に行う（ファイル読み込みより前）。`<project>` は `plans/` 配下のディレクトリ名。
+
+```bash
+git worktree add ../tdd-<project> -b tdd/<project>
+```
+
+以降の作業（ファイル読み込み・テスト・実装）はすべてこのworktree内で行う。
+
+---
+
 ## セッション開始時に開くもの
 
 ```bash
@@ -447,28 +459,22 @@ green になったらユーザーに確認を求める。
 **試みた対応策:** <一覧>
 ```
 
-### 9. findings.md の記録
+### 9. 実装中の観察メモ
 
-| 発見の性質 | 戻し先 |
-|-----------|--------|
-| 問題の発見（「できない」の条件に見落とし） | /tdd-problem |
-| ツリーの再構築が必要（分解・合成の見直し） | このスキルの次サイクル |
-
-軽微なバグ修正・小さなリファクタリングでは生成しない。
+実装中に気づいたことを `plans/<project>/observations.md` に残す。
+**ルーティング（どこに戻すか）は tdd-feedback で判断する。ここでは事実と気づきだけを書く。**
 
 ```markdown
-# Implementation Findings
+# Observations: <project>
 
 **日時:** YYYY-MM-DD
-**プロジェクト:** plans/<project>/
 
-## 発見（戻し先つき）
+## 実装中の気づき
 
-### F-01: <タイトル>
-**戻し先:** /tdd-problem（問題の発見） | このスキルの次サイクル（ツリーの再構築）
-**現象:** ...
-**検証で分かったこと:** ...
-**推奨される対応:** ...
+- （ツリーの組み換えが起きた場合、その理由）
+- （5回連続失敗など、詰まったポイント）
+- （スキルの使い方で想定と違ったこと）
+- （特になし）
 ```
 
 ---
@@ -484,14 +490,26 @@ green になったらユーザーに確認を求める。
 - tests/acceptance/<project>.spec.ts（受け入れテスト骨格）
 - plans/<project>/test-tree.md（テストツリーと利用仮説）
 - plans/<project>/dictionary.md（アプリケーションドメイン + ソリューションドメイン）
+- plans/<project>/observations.md（実装中の気づき）
 - plans/<project>/auto-decisions.md（auto モード時のみ: 自律的に決定した事項の記録）
 
 🚀 次のステップ:
-- /tdd-feedback（実際に使ってフィードバックを得る）
-- /tdd-vocab promote（wip の概念を dictionary.md に昇格する）
-- tests/acceptance/<project>.spec.ts にアサーションを追記して受け入れテストを完成させる
+- 次セッションで /tdd-feedback <project> を起動する（必須）
+```
 
-plans/<project>/dictionary.md に残っている語彙エントリを確認して promote する
+### コミットとクリーンアップ
+
+worktree 内で成果物をコミットする:
+
+```bash
+git add .
+git commit -m "tdd(<project>): <problem.md の1行タイトル>"
+```
+
+コミット後、worktree を削除する:
+
+```bash
+git worktree remove ../tdd-<project>
 ```
 
 ---
