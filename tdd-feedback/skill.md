@@ -143,6 +143,16 @@ git -C ./tdd/<project> commit -m "archive: <project>"
 
 `config.json` が存在しない場合、または `commit_plans` が `false` の場合はコミットしない。
 
+メインリポジトリのクリーンアップ:
+
+```bash
+# plans/<project>/ を削除（worktree 側にアーカイブ済み）
+rm -rf plans/<project>/
+
+# docs/dictionary.md を元に戻す（変更は worktree にコミット済み）
+git checkout -- docs/dictionary.md 2>/dev/null || true
+```
+
 worktree を削除する（ブランチ `tdd/<project>` は残す）:
 
 ```bash
