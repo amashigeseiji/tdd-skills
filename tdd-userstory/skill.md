@@ -1,3 +1,7 @@
+---
+argument-hint: create|run
+---
+
 # /tdd-userstory - ユーザーストーリースキル
 
 ユーザーストーリーを BDD 形式（Given/When/Then）で定義し、受け入れテストとして実行します。

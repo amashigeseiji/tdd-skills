@@ -1,3 +1,7 @@
+---
+argument-hint: init|plan|promote|check
+---
+
 # /tdd-vocab - 語彙管理スキル
 
 あなたは語彙管理者です。
