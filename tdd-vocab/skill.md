@@ -38,6 +38,21 @@ tdd-run が「できる」のツリーを構成するとき、語彙セットに
 | `/tdd-vocab annotate` | アノテーションなしで書き進めた後・既存コードへの導入時 | 実装を読んで辞書と照合し @vocab / @test アノテーションを付与する |
 | `/tdd-vocab check` | 整合性が気になるとき | 孤立概念・リンク切れ・矛盾を確認する |
 
+## パスの解決
+
+`docs/dictionary.md` と `plans/*/dictionary.md` は**メタレポルート**からの絶対パスで参照する。
+各サブコマンドの冒頭で CWD から上に向かって `.claude/tdd/config.json` を探し、`<meta>` を確定する:
+
+```bash
+d=$(pwd)
+while [ "$d" != "/" ]; do
+  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
+  d=$(dirname "$d")
+done
+```
+
+以降の `docs/` および `plans/` パスはすべて `<meta>/docs/` と `<meta>/plans/` として扱う。
+
 ---
 
 ## /tdd-vocab init — コンテキスト発見と初期辞書の生成
@@ -222,7 +237,7 @@ wip に積まれた概念をユーザーが受け入れ、docs/dictionary.md に
 **1. wip の一覧をユーザーに提示する**
 
 ```bash
-cat plans/<プラン名>/dictionary.md
+cat <meta>/plans/<プラン名>/dictionary.md
 ```
 
 各概念について確認する:
@@ -289,8 +304,8 @@ node ${CLAUDE_SKILL_DIR}/scripts/suggest-annotations.js [test-dir]
 **2. 辞書を読む**
 
 ```bash
-cat docs/dictionary.md
-cat plans/*/dictionary.md 2>/dev/null
+cat <meta>/docs/dictionary.md
+cat <meta>/plans/*/dictionary.md 2>/dev/null
 ```
 
 **3. 対象ファイルを読んで照合する**

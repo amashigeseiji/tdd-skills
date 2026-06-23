@@ -18,8 +18,18 @@ argument-hint: create|run
 
 #### 1. problem.md を読む
 
+CWD から上に向かって `.claude/tdd/config.json` を探し、`<meta>` を確定してから読む:
+
 ```bash
-cat plans/<project>/problem.md
+d=$(pwd)
+while [ "$d" != "/" ]; do
+  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
+  d=$(dirname "$d")
+done
+```
+
+```bash
+cat <meta>/plans/<project>/problem.md
 ```
 
 #### 2. ユーザーストーリーを抽出する
@@ -97,8 +107,10 @@ Then <期待される結果>
 
 #### 1. user-story.md を読む
 
+`<meta>` は config.json から取得済みであること（create セクションで確定）。`run` を単独で呼ぶ場合は同様に config を検索する。
+
 ```bash
-cat plans/<project>/user-story.md
+cat <meta>/plans/<project>/user-story.md
 ```
 
 存在しない場合: `/tdd-userstory create <project>` を先に実行してください、と伝えてスキップする。

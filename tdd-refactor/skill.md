@@ -23,13 +23,23 @@ tdd-run の実装文脈が残った状態では見えない構造パターンが
 
 ## 読み込み
 
+まず CWD から上に向かって `.claude/tdd/config.json` を探し、`<meta>` を確定する:
+
+```bash
+d=$(pwd)
+while [ "$d" != "/" ]; do
+  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
+  d=$(dirname "$d")
+done
+```
+
 ```bash
 # 辞書（安定版と作業中）
-cat docs/dictionary.md 2>/dev/null
-cat plans/*/dictionary.md 2>/dev/null
+cat <meta>/docs/dictionary.md 2>/dev/null
+cat <meta>/plans/*/dictionary.md 2>/dev/null
 
 # 問題定義（スコープ内の全プラン）
-cat plans/*/problem.md
+cat <meta>/plans/*/problem.md
 
 # 接続マップの生成
 node "$(realpath "${CLAUDE_SKILL_DIR}")/../tdd-vocab/scripts/generate-map.js" [src-dirs]
