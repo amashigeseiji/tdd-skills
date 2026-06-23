@@ -47,21 +47,46 @@ auto モードで自律的に決定した事項は `plans/<project>/auto-decisio
 
 セッション最初に行う（ファイル読み込みより前）。`<project>` は `plans/` 配下のディレクトリ名。
 
+### 作業レポジトリの特定
+
+`plans/<project>/problem.md` の先頭から `**作業レポジトリ:**` フィールドを読む:
+
+```bash
+grep "^\*\*作業レポジトリ:" plans/<project>/problem.md
+```
+
+- **フィールドがある場合**: 値（例: `example-app`）が作業レポジトリ。以降の worktree 操作はすべて `./<value>/` を起点に行う
+- **フィールドがない場合**: 現在のディレクトリが作業レポジトリ（従来どおり）
+
+### worktree 追加
+
 ブランチ `tdd/<project>` が存在するかで分岐する:
 
 ```bash
-# 新規（初回）
+# 新規（初回）—— フィールドなし（現在のディレクトリが作業レポジトリ）
 git worktree add ./tdd/<project> -b tdd/<project>
 mkdir -p ./tdd/<project>/plans
 cp -r plans/<project> ./tdd/<project>/plans/
 
-# 再利用（tdd-feedback の B「同一プランへの戻し」後）
+# 新規（初回）—— 作業レポジトリが <repo> サブディレクトリの場合
+cd ./<repo>
+git worktree add ./tdd/<project> -b tdd/<project>
+mkdir -p ./tdd/<project>/plans
+cp -r ../plans/<project> ./tdd/<project>/plans/   # plans/ は meta-repo 側にある
+cd ..
+
+# 再利用（tdd-feedback の B「同一プランへの戻し」後）—— フィールドなし
 git worktree add ./tdd/<project> tdd/<project>
+
+# 再利用 —— 作業レポジトリが <repo> サブディレクトリの場合
+cd ./<repo>
+git worktree add ./tdd/<project> tdd/<project>
+cd ..
 ```
 
 再利用の場合、plans/ は前サイクルのコミットに含まれているためコピー不要。
 
-以降の作業（ファイル読み込み・テスト・実装）はすべてこのworktree内で行う。
+以降の作業（ファイル読み込み・テスト・実装）はすべて作業レポジトリ内の worktree（`./<repo>/tdd/<project>/`）で行う。
 
 ---
 
