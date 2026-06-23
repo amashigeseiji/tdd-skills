@@ -165,6 +165,7 @@ find plans -name "problem.md" -type f -not -path "plans/archives/*" 2>/dev/null
 
 **バージョン:** v1
 **最終更新:** 2026-06-09
+**作業レポジトリ:** <実装を行うサブディレクトリ名。現在のディレクトリ自体が作業レポジトリの場合は省略>
 **関連設計資料:** docs/xxx.md（「適切さ」の出発点）
 **性格:** 現時点の問題理解のスナップショット。design/run/feedback を経て改版されることが正常な軌道。
 
