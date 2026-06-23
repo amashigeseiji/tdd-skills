@@ -13,7 +13,7 @@ tdd-skills リポジトリを `git pull` し、新規スキルのシンボリッ
 ## 実行
 
 ```bash
-bash "${CLAUDE_SKILL_DIR}/../bin/update.sh"
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/update.sh"
 ```
 
 出力をそのままユーザーに表示する。
