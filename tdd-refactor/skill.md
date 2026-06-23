@@ -32,8 +32,8 @@ cat plans/*/dictionary.md 2>/dev/null
 cat plans/*/problem.md
 
 # 接続マップの生成
-node ${CLAUDE_SKILL_DIR}/../tdd-vocab/scripts/generate-map.js [src-dirs]
-node ${CLAUDE_SKILL_DIR}/../tdd-vocab/scripts/check-vocab.js [test-dir]
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../tdd-vocab/scripts/generate-map.js" [src-dirs]
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../tdd-vocab/scripts/check-vocab.js" [test-dir]
 ```
 
 スクリプトが使えない場合:

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd -P)"
 SKILLS_DIR="$HOME/.claude/skills"
 
 echo "tdd-skills を更新中..."
