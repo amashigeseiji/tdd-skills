@@ -23,23 +23,31 @@
 - **Yes** — アーカイブ時（tdd-feedback でクローズするとき）に自動でコミットする
 - **No** — `plans/` を `.gitignore` に追加する
 
-答えに応じて `.claude/tdd/config.json` を作成する:
+`.claude/tdd/` ディレクトリが存在しなければ作成する（**現在のディレクトリがメタレポルートであることを確認してから実行する**）:
+
+```bash
+mkdir -p .claude/tdd
+```
+
+答えに応じて `.claude/tdd/config.json` を作成する。`meta_repo` には現在のディレクトリの絶対パスを記録する:
 
 ```json
-{ "commit_plans": true }
+{
+  "meta_repo": "/absolute/path/to/meta-repo",
+  "commit_plans": true
+}
 ```
 
 または:
 
 ```json
-{ "commit_plans": false }
+{
+  "meta_repo": "/absolute/path/to/meta-repo",
+  "commit_plans": false
+}
 ```
 
-`.claude/tdd/` ディレクトリが存在しなければ作成する:
-
-```bash
-mkdir -p .claude/tdd
-```
+`meta_repo` の値は `pwd` で取得した絶対パスをそのまま書く。
 
 **No を選んだ場合**、`.gitignore` に `plans/` を追加する:
 
@@ -61,6 +69,6 @@ echo 'plans/' >> .gitignore
 
 ## 成果物
 
-- `.claude/tdd/config.json` — plans コミット設定
+- `.claude/tdd/config.json` — メタレポルートの絶対パス（`meta_repo`）と plans コミット設定
 - `.claude/tdd/scaffold.sh` — スタブ生成スクリプト（tdd-scaffold が作成）
 - `docs/dictionary.md` — 初期語彙定義（tdd-vocab init が作成）

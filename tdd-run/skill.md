@@ -47,56 +47,65 @@ auto モードで自律的に決定した事項は `plans/<project>/auto-decisio
 
 セッション最初に行う（ファイル読み込みより前）。`<project>` は `plans/` 配下のディレクトリ名。
 
-### 作業レポジトリの特定
+### config.json の読み込みとメタレポルートの確定
 
-`plans/<project>/problem.md` の先頭から `**作業レポジトリ:**` フィールドを読む:
+CWD から上に向かって `.claude/tdd/config.json` を探し、`meta_repo` を取得する:
 
 ```bash
-grep "^\*\*作業レポジトリ:" plans/<project>/problem.md
+d=$(pwd)
+while [ "$d" != "/" ]; do
+  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
+  d=$(dirname "$d")
+done
 ```
 
-- **フィールドがある場合**: 値（例: `example-app`）が作業レポジトリ。以降の worktree 操作はすべて `./<value>/` を起点に行う
-- **フィールドがない場合**: 現在のディレクトリが作業レポジトリ（従来どおり）
+見つかった config.json の `meta_repo` フィールドの値を `<meta>` とする。
+見つからない場合は `/tdd-init` を実行してから戻る。
+
+### 作業レポジトリの特定
+
+`<meta>/plans/<project>/problem.md` から2フィールドを読む:
+
+```bash
+grep "^\*\*作業レポジトリ:" <meta>/plans/<project>/problem.md
+grep "^\*\*作業ディレクトリ:" <meta>/plans/<project>/problem.md
+```
+
+- **`**作業レポジトリ:**` がある場合**: 値（例: `example-app`）が作業レポジトリ名
+  - `**作業ディレクトリ:**` があればその値を `<work_repo_abs>` とする
+  - なければ `<meta>/<repo名>` を `<work_repo_abs>` とする
+- **フィールドがない場合**: `<meta>` が `<work_repo_abs>`
 
 ### worktree 追加
 
-ブランチ `tdd/<project>` が存在するかで分岐する:
+`cd` は使わず `git -C <work_repo_abs>` でリポジトリを指定する。ブランチ `tdd/<project>` の有無で分岐:
 
 ```bash
-# 新規（初回）—— フィールドなし（現在のディレクトリが作業レポジトリ）
-git worktree add ./tdd/<project> -b tdd/<project>
-mkdir -p ./tdd/<project>/plans
-cp -r plans/<project> ./tdd/<project>/plans/
+# 新規（初回）
+git -C <work_repo_abs> worktree add <work_repo_abs>/tdd/<project> -b tdd/<project>
+mkdir -p <work_repo_abs>/tdd/<project>/plans
+cp -r <meta>/plans/<project> <work_repo_abs>/tdd/<project>/plans/
 
-# 新規（初回）—— 作業レポジトリが <repo> サブディレクトリの場合
-cd ./<repo>
-git worktree add ./tdd/<project> -b tdd/<project>
-mkdir -p ./tdd/<project>/plans
-cp -r ../plans/<project> ./tdd/<project>/plans/   # plans/ は meta-repo 側にある
-cd ..
-
-# 再利用（tdd-feedback の B「同一プランへの戻し」後）—— フィールドなし
-git worktree add ./tdd/<project> tdd/<project>
-
-# 再利用 —— 作業レポジトリが <repo> サブディレクトリの場合
-cd ./<repo>
-git worktree add ./tdd/<project> tdd/<project>
-cd ..
+# 再利用（tdd-feedback の B「同一プランへの戻し」後）
+git -C <work_repo_abs> worktree add <work_repo_abs>/tdd/<project> tdd/<project>
 ```
 
 再利用の場合、plans/ は前サイクルのコミットに含まれているためコピー不要。
 
-以降の作業（ファイル読み込み・テスト・実装）はすべて作業レポジトリ内の worktree（`./<repo>/tdd/<project>/`）で行う。
+以降の作業（ファイル読み込み・テスト・実装）はすべて worktree（`<work_repo_abs>/tdd/<project>/`）で行う。
+worktree 内では `plans/<project>/` = `<work_repo_abs>/tdd/<project>/plans/<project>/` として扱う。
 
 ---
 
 ## セッション開始時に開くもの
 
+worktree セットアップ後、以下を絶対パスで読む（`<wt>` = `<work_repo_abs>/tdd/<project>`）:
+
 ```bash
-cat plans/<project>/problem.md
-cat plans/<project>/user-story.md 2>/dev/null
-cat docs/dictionary.md 2>/dev/null
-cat plans/<project>/dictionary.md 2>/dev/null
+cat <wt>/plans/<project>/problem.md
+cat <wt>/plans/<project>/user-story.md 2>/dev/null
+cat <meta>/docs/dictionary.md 2>/dev/null
+cat <wt>/plans/<project>/dictionary.md 2>/dev/null
 ```
 
 problem.md が無い場合: `/tdd-problem` で問題を定義してください。
@@ -547,11 +556,11 @@ green になったらユーザーに確認を求める。
 
 ### コミットとクリーンアップ
 
-worktree 内で成果物をコミットする:
+worktree 内で成果物をコミットする（`<wt>` = `<work_repo_abs>/tdd/<project>`）:
 
 ```bash
-git add .
-git commit -m "tdd(<project>): <problem.md の1行タイトル>"
+git -C <wt> add .
+git -C <wt> commit -m "tdd(<project>): <problem.md の1行タイトル>"
 ```
 
 **[auto] worktree は削除しない。** tdd-cycle が tdd-feedback 完了後に削除する。
@@ -559,7 +568,7 @@ git commit -m "tdd(<project>): <problem.md の1行タイトル>"
 通常モードの場合、コミット後に worktree を削除する:
 
 ```bash
-git worktree remove ./tdd/<project>
+git -C <work_repo_abs> worktree remove <work_repo_abs>/tdd/<project>
 ```
 
 ---
