@@ -76,24 +76,61 @@ grep "^\*\*作業ディレクトリ:" <meta>/plans/<project>/problem.md
   - なければ `<meta>/<repo名>` を `<work_repo_abs>` とする
 - **フィールドがない場合**: `<meta>` が `<work_repo_abs>`
 
-### worktree 追加
+### ブランチ名の解決
 
-`cd` は使わず `git -C <work_repo_abs>` でリポジトリを指定する。ブランチ `tdd/<project>` の有無で分岐:
+problem.md に `**Issue ID:**` があり、config.json に `branch_name_template` がある場合、作業ブランチ名を解決する:
 
-```bash
-# 新規（初回）
-git -C <work_repo_abs> worktree add <work_repo_abs>/tdd/<project> -b tdd/<project>
-mkdir -p <work_repo_abs>/tdd/<project>/plans
-cp -r <meta>/plans/<project> <work_repo_abs>/tdd/<project>/plans/
-
-# 再利用（tdd-feedback の B「同一プランへの戻し」後）
-git -C <work_repo_abs> worktree add <work_repo_abs>/tdd/<project> tdd/<project>
+```
+# 例: template = "feature/{ID}/{project}", ID = PROJ-1234, project = my-feature
+# → feature/PROJ-1234/my-feature
+<work_branch> = branch_name_template の {ID} を Issue ID で、{project} を project 名で置換
 ```
 
-再利用の場合、plans/ は前サイクルのコミットに含まれているためコピー不要。
+どちらかがない場合:
+
+```
+<work_branch> = tdd/<project>
+```
+
+### plans の参照先
+
+`<meta>` と `<work_repo_abs>` が**異なる**場合（サブレポ構成）:
+
+```
+<plans_dir> = <meta>/plans/<project>
+```
+
+plans は worktree にコピーしない。すべての plans 参照は `<meta>/plans/<project>/` を直接使う。
+
+`<meta>` と `<work_repo_abs>` が**同じ**場合（単一レポ）:
+
+```
+<plans_dir> = <wt>/plans/<project>
+```
+
+### worktree 追加
+
+`cd` は使わず `git -C <work_repo_abs>` でリポジトリを指定する。`<work_branch>` の存在で分岐:
+
+```bash
+# ブランチの存在確認
+git -C <work_repo_abs> branch --list <work_branch>
+
+# 新規（出力なし）
+git -C <work_repo_abs> worktree add <work_repo_abs>/tdd/<project> -b <work_branch>
+
+# 再利用（出力あり: 既存ブランチへの追加 or tdd-feedback B 後の戻し）
+git -C <work_repo_abs> worktree add <work_repo_abs>/tdd/<project> <work_branch>
+```
+
+単一レポの場合のみ、plans を worktree にコピーする:
+
+```bash
+mkdir -p <wt>/plans
+cp -r <meta>/plans/<project> <wt>/plans/
+```
 
 以降の作業（ファイル読み込み・テスト・実装）はすべて worktree（`<work_repo_abs>/tdd/<project>/`）で行う。
-worktree 内では `plans/<project>/` = `<work_repo_abs>/tdd/<project>/plans/<project>/` として扱う。
 
 ---
 
@@ -102,10 +139,10 @@ worktree 内では `plans/<project>/` = `<work_repo_abs>/tdd/<project>/plans/<pr
 worktree セットアップ後、以下を絶対パスで読む（`<wt>` = `<work_repo_abs>/tdd/<project>`）:
 
 ```bash
-cat <wt>/plans/<project>/problem.md
-cat <wt>/plans/<project>/user-story.md 2>/dev/null
+cat <plans_dir>/problem.md
+cat <plans_dir>/user-story.md 2>/dev/null
 cat <meta>/docs/dictionary.md 2>/dev/null
-cat <wt>/plans/<project>/dictionary.md 2>/dev/null
+cat <plans_dir>/dictionary.md 2>/dev/null
 ```
 
 problem.md が無い場合: `/tdd-problem` で問題を定義してください。
@@ -556,12 +593,14 @@ green になったらユーザーに確認を求める。
 
 ### コミットとクリーンアップ
 
-worktree 内で成果物をコミットする（`<wt>` = `<work_repo_abs>/tdd/<project>`）:
+worktree 内でコードをコミットする（`<wt>` = `<work_repo_abs>/tdd/<project>`）:
 
 ```bash
 git -C <wt> add .
 git -C <wt> commit -m "tdd(<project>): <problem.md の1行タイトル>"
 ```
+
+サブレポ構成（`<meta>` != `<work_repo_abs>`）の場合、plans ファイル（`<meta>/plans/<project>/` 以下）はここではコミットしない。plans のコミットは tdd-feedback のアーカイブ時に meta_repo へ行う。
 
 **[auto] worktree は削除しない。** tdd-cycle が tdd-feedback 完了後に削除する。
 

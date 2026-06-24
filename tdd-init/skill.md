@@ -49,6 +49,30 @@ mkdir -p .claude/tdd
 
 `meta_repo` の値は `pwd` で取得した絶対パスをそのまま書く。
 
+**ブランチ名テンプレートの設定（任意）:**
+
+イシュートラッカーと連携したブランチ名規約がある場合、続けて確認する:
+
+> ブランチ名にイシュートラッカーの ID を含める規約はありますか？ある場合はテンプレートを教えてください。
+> 例: `feature/{ID}/{project}` → `feature/VOCE-1234/voce-gigya-cleanup`
+> （なければそのままEnter）
+
+規約がある場合、config.json に `branch_name_template` を追加する:
+
+```json
+{
+  "meta_repo": "/absolute/path/to/meta-repo",
+  "commit_plans": true,
+  "branch_name_template": "feature/{ID}/{project}"
+}
+```
+
+テンプレートの変数:
+- `{ID}`: problem.md の `**Issue ID:**` の値
+- `{project}`: TDD プロジェクト名（plans/ のディレクトリ名）
+
+規約がなければ `branch_name_template` は省略する（`tdd/<project>` ブランチが使われる）。
+
 **No を選んだ場合**、`.gitignore` に `plans/` を追加する:
 
 ```bash
