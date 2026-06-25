@@ -194,6 +194,18 @@ export default defineConfig({
 
 出力先: `tests/acceptance/<project>.spec.ts`（Playwright）または `tests/acceptance/<project>.test.ts`（その他）
 
+**When 句種別の判定（テストコード生成前に確認する）:**
+
+各シナリオの When 節を読み、操作種別を判定してからコードを生成する:
+
+| When 節の内容 | 操作種別 | テストの手段 |
+|-------------|---------|------------|
+| 画面を開く・ボタンを押す・フォームを送信する・ファイルをアップロードする | UI 操作 | `page.goto()` + `page.locator()` 等のブラウザ操作 |
+| HTTP リクエストを送る・エンドポイントを叩く | HTTP 操作 | `request.post()` / `request.get()` 等 |
+| 関数を呼ぶ・値を渡す | ロジック操作 | 関数直呼び |
+
+UI 操作 / HTTP 操作の場合、Playwright の `page` または `request` フィクスチャ経由で実際のサーバーを通じて検証する。**関数直呼びで代替しない。**
+
 user-story.md の各シナリオを Given/When/Then のコメントを保持したままテストコードに変換する。
 
 **アサーションの書き方:**
@@ -317,6 +329,7 @@ npx jest tests/acceptance/<project>.test.ts
 - **user-story.md は problem.md の言葉で書く** — 実装の詳細（関数名・技術名）は書かない
 - **受け入れテストは `tdd-run` の単体テストツリーと別ディレクトリに置く** — `tests/acceptance/` に限定
 - **Then 節の意図を根拠にアサーションを書く** — 実装コードから逆算（「こう実装されているからこうアサートする」）しない
+- **When 節が UI/HTTP 操作を指す場合、関数直呼びで代替しない** — `page` / `request` フィクスチャ経由で実際のサーバーを通じて検証する
 - **問題定義（problem.md）を変更しない**
 
 ---
