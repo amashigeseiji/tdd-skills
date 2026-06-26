@@ -4,9 +4,11 @@
 
 以下を順に行う:
 
-1. **plans コミット設定の確定** — `.claude/tdd/config.json` を作成する
+1. **config.json の作成** — `.claude/tdd/config.json` を作成する
 2. **scaffold の初期化** — `/tdd-scaffold` を呼び、`.claude/tdd/scaffold.sh` を生成する
 3. **語彙の初期化** — `/tdd-vocab init` を呼び、`docs/dictionary.md` を作成する
+
+`workflow.md`（`.claude/tdd/workflow.md`）は `/tdd-workflow` の初回起動時にヒアリングして生成する。`/tdd-init` では作成しない。
 
 > BC が増えたときの `/tdd-vocab init` の再実行は、`/tdd-init` を経由せず直接呼ぶ。
 
