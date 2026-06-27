@@ -57,11 +57,7 @@ tdd-run が「できる」のツリーを構成するとき、語彙セットに
 各サブコマンドの冒頭で CWD から上に向かって `.claude/tdd/config.json` を探し、`<meta>` を確定する:
 
 ```bash
-d=$(pwd)
-while [ "$d" != "/" ]; do
-  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
-  d=$(dirname "$d")
-done
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 以降の `docs/` および `plans/` パスはすべて `<meta>/docs/` と `<meta>/plans/` として扱う。

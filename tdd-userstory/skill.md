@@ -21,11 +21,7 @@ argument-hint: create|run
 CWD から上に向かって `.claude/tdd/config.json` を探し、`<meta>` を確定してから読む:
 
 ```bash
-d=$(pwd)
-while [ "$d" != "/" ]; do
-  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
-  d=$(dirname "$d")
-done
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 ```bash

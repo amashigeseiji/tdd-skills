@@ -25,11 +25,7 @@ tdd-run が完了したら必ず起動する。**別セッションで動かす*
 まず CWD から上に向かって `.claude/tdd/config.json` を探し、パスを確定する:
 
 ```bash
-d=$(pwd)
-while [ "$d" != "/" ]; do
-  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
-  d=$(dirname "$d")
-done
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 - `<meta>` = config.json の `meta_repo`

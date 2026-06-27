@@ -12,11 +12,7 @@
 CWD から上に向かって `.claude/tdd/config.json` を探す:
 
 ```bash
-d=$(pwd)
-while [ "$d" != "/" ]; do
-  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
-  d=$(dirname "$d")
-done
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 見つからない場合: `/tdd-init` を実行してから戻る。

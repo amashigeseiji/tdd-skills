@@ -19,11 +19,7 @@
 CWD から上に向かって `.claude/tdd/config.json` を探し、`meta_repo` を取得する:
 
 ```bash
-d=$(pwd)
-while [ "$d" != "/" ]; do
-  [ -f "$d/.claude/tdd/config.json" ] && cat "$d/.claude/tdd/config.json" && break
-  d=$(dirname "$d")
-done
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 見つかった config.json の `meta_repo` フィールドの値を `<meta>` とする。
