@@ -41,7 +41,7 @@ grep "^\*\*作業ディレクトリ:" <meta>/plans/<project>/problem.md
   - Otherwise use `<meta>/<repo-name>` as `<work_repo_abs>`
 - **If the field is absent**: `<meta>` is `<work_repo_abs>`
 
-### plans reference path
+### Plans reference path
 
 When `<meta>` and `<work_repo_abs>` **differ** (sub-repo setup):
 
@@ -454,7 +454,7 @@ First create a correspondence table:
 
 ### 8. Integration and behavior verification (make it usable)
 
-Don't stop at test green. Bring the changes to a **actually usable state**:
+Don't stop at test green. Bring the changes to an **actually usable state**:
 
 - Verify that the root module is actually referenced from the entry point declared in step 2.
 - Integrate the changes into the user-facing entry point (UI, CLI, endpoint, etc.)
