@@ -1,5 +1,5 @@
 ---
-argument-hint: init|plan|promote|annotate|check
+argument-hint: init|plan|promote|annotate|check|migrate
 ---
 
 # /tdd-vocab - 語彙管理スキル
@@ -36,6 +36,7 @@ tdd-run が「できる」のツリーを構成するとき、語彙セットに
 | `/tdd-vocab promote` | ユーザーの任意タイミング | plans/ の語彙を docs/dictionary.json に昇格する |
 | `/tdd-vocab annotate` | アノテーションなしで書き進めた後・既存コードへの導入時 | 実装を読んで辞書と照合し @vocab / @test アノテーションを付与する |
 | `/tdd-vocab check` | 整合性が気になるとき | 孤立概念・リンク切れ・矛盾を確認する |
+| `/tdd-vocab migrate` | tdd-skills を更新後・旧プロジェクトに導入するとき | `dictionary.md`（旧）を `dictionary.json` に変換する |
 
 ## 実行
 
@@ -48,6 +49,7 @@ tdd-run が「できる」のツリーを構成するとき、語彙セットに
 | `promote`  | `${CLAUDE_SKILL_DIR}/subcmds/promote.md` |
 | `annotate` | `${CLAUDE_SKILL_DIR}/subcmds/annotate.md` |
 | `check`    | `${CLAUDE_SKILL_DIR}/subcmds/check.md` |
+| `migrate`  | `${CLAUDE_SKILL_DIR}/subcmds/migrate.md` |
 
 ## パスの解決
 
