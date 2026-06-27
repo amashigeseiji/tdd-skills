@@ -142,9 +142,11 @@ function generate() {
   for (const [dir, words] of Object.entries(dict)) {
     const entries = []
     for (const { word, definition } of words) {
-      if (!wordMap.has(word)) continue
+      // @vocab: 概念名[context] が優先、なければ @vocab: 概念名 にフォールバック
+      const mapEntry = wordMap.get(`${word}[${dir}]`) || wordMap.get(word)
+      if (!mapEntry) continue
 
-      const { implements: impl, tests } = wordMap.get(word)
+      const { implements: impl, tests } = mapEntry
 
       const testsObj = {}
       for (const testFile of tests) testsObj[testFile] = getTestCases(testFile)

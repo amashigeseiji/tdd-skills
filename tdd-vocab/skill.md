@@ -329,7 +329,7 @@ node <meta>/.claude/tdd/dict-search.js <関数名やキーワード> [<plans_dir
 - 関数名・クラス名が辞書エントリ名（または英訳・略称）と対応しているか
 - 関数の責務（何をするか）が辞書の「定義」と一致するか
 - 複数の概念を実現している場合は複数の `@vocab` を付ける（セミラティスの共有ノードはその典型）
-- stable・wip どちらの概念も概念名のみを記載する（`// @vocab: 概念名`）
+- 概念名のみを記載する（`// @vocab: 概念名`）。同名概念が複数コンテキストに存在する場合はコンテキストを明示する（`// @vocab: 概念名[context]`）
 
 **4. アノテーションを挿入する**
 
@@ -339,6 +339,10 @@ node <meta>/.claude/tdd/dict-search.js <関数名やキーワード> [<plans_dir
 // @vocab: グリッドビルダー
 // @test: tests/grid-canvas/grid-builder.test.js
 function buildGrid(rows, cols) { ... }
+
+// 同名概念が複数コンテキストに存在する場合はコンテキストを明示する:
+// @vocab: ページ[ssg-core]
+function renderPage(page) { ... }
 ```
 
 対応する辞書概念が見つからない関数はスキップし、一覧に記録する。
