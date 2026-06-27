@@ -7,39 +7,20 @@ const ROOT = process.cwd()
 // ── Dictionary parser ──────────────────────────────────────────────────────
 
 function parseDictionary(filePath) {
-  const lines = fs.readFileSync(filePath, 'utf-8').split('\n')
-  const result = {}   // dir -> [{ word, definition }]
-  let currentDir = null
-  let currentWord = null
-
-  for (const line of lines) {
-    if (line.startsWith('## ')) {
-      currentDir = null
-      currentWord = null
-      continue
-    }
-
-    const dirMatch = line.match(/^\*\*dir:\*\*\s+(.+)/)
-    if (dirMatch) {
-      currentDir = dirMatch[1].trim()
-      result[currentDir] = []
-      currentWord = null
-      continue
-    }
-
-    if (line.startsWith('### ')) {
-      currentWord = line.slice(4).trim()
-      if (currentDir) result[currentDir].push({ word: currentWord, definition: '' })
-      continue
-    }
-
-    const defMatch = line.match(/^\*\*定義:\*\*\s+(.+)/)
-    if (defMatch && currentDir && currentWord) {
-      const entry = result[currentDir].find(e => e.word === currentWord)
-      if (entry) entry.definition = defMatch[1].trim()
-    }
+  if (!fs.existsSync(filePath)) return {}
+  let dict
+  try {
+    dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+  } catch (e) {
+    throw new Error(`dictionary parse failed: ${filePath}\n${e.message}`)
   }
-
+  const result = {}   // dir -> [{ word, definition }]
+  for (const entry of (dict.entries || [])) {
+    if (!entry.context) continue
+    const dir = entry.context
+    if (!result[dir]) result[dir] = []
+    result[dir].push({ word: entry.name, definition: entry.definition || '' })
+  }
   return result
 }
 
@@ -72,8 +53,8 @@ function parseAnnotations(filePath) {
 
       while (i < lines.length) {
         const l = lines[i].trim()
-        const vocabMatch = l.match(/^\/\/ @vocab:\s+(.+?)\s+\(/)
-        if (vocabMatch) { block.vocabs.push(vocabMatch[1]); i++; continue }
+        const vocabMatch = l.match(/^\/\/ @vocab:\s+(.+)/)
+        if (vocabMatch) { block.vocabs.push(vocabMatch[1].trim()); i++; continue }
         const testMatch = l.match(/^\/\/ @test:\s+(.+)/)
         if (testMatch) { block.tests.push(testMatch[1].trim()); i++; continue }
         break
@@ -121,7 +102,7 @@ function findJsFiles(dir) {
 // ── Main ───────────────────────────────────────────────────────────────────
 
 function generate() {
-  const dict = parseDictionary(path.join(ROOT, 'docs/dictionary.md'))
+  const dict = parseDictionary(path.join(ROOT, 'docs/dictionary.json'))
 
   const srcDirs = process.argv.slice(2).length > 0
     ? process.argv.slice(2)
@@ -161,9 +142,11 @@ function generate() {
   for (const [dir, words] of Object.entries(dict)) {
     const entries = []
     for (const { word, definition } of words) {
-      if (!wordMap.has(word)) continue
+      // @vocab: 概念名[context] が優先、なければ @vocab: 概念名 にフォールバック
+      const mapEntry = wordMap.get(`${word}[${dir}]`) || wordMap.get(word)
+      if (!mapEntry) continue
 
-      const { implements: impl, tests } = wordMap.get(word)
+      const { implements: impl, tests } = mapEntry
 
       const testsObj = {}
       for (const testFile of tests) testsObj[testFile] = getTestCases(testFile)
