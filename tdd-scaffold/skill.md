@@ -68,7 +68,7 @@ mkdir -p "${SRC_ROOT}/${CONTEXT}"
 add_stub() {
   echo ""
   echo "/**"
-  echo " * @vocab $SUBJECT (plans/dictionary.md)"
+  echo " * @vocab $SUBJECT"
   echo " * @test $TEST_FILE"
   echo " */"
   echo "export function $VERB() {"
