@@ -14,7 +14,7 @@
 **1. コードベースを読む**
 
 ```bash
-find . -maxdepth 3 -type d | grep -v node_modules | grep -v .git
+find . -maxdepth 3 -type d | grep -v node_modules | grep -v '\.git'
 ls packages/ 2>/dev/null || true
 ```
 
@@ -73,6 +73,6 @@ ls packages/ 2>/dev/null || true
 
 確定した内容を一コンテキストずつ書く。ソリューションドメインは空エントリのまま。
 
-survey は既存システムの知識を定義するため、`plans/` 経由ではなく `docs/dictionary.json` に直接書く。
+`init` は既存システムの知識を定義するため、`plans/` 経由ではなく `docs/dictionary.json` に直接書く。
 
 エントリのフォーマットは skill.md の「語彙エントリのフォーマット」を参照する。

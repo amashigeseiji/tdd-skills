@@ -129,6 +129,11 @@ promote 時に `wip` フィールドは除去する。
 
 ```json
 {
+  "name": "<概念名>",
+  "context": "<コンテキスト>",
+  "definition": "<定義>",
+  "relations": [],
+  "src": "<ファイルパス>",
   "wip": {
     "status": "new",
     "discovered": "tdd-run | tdd-feedback | その他"
@@ -139,6 +144,11 @@ promote 時に `wip` フィールドは除去する。
 再定義の場合:
 ```json
 {
+  "name": "<概念名>",
+  "context": "<コンテキスト>",
+  "definition": "<新しい定義>",
+  "relations": [...],
+  "src": "<ファイルパス>",
   "wip": {
     "status": "redefine",
     "previous_definition": "<現在の定義>",
@@ -156,7 +166,7 @@ promote 時に `wip` フィールドは除去する。
 - **promote はユーザーの承認なしに行わない**
 - **再定義は必ず check を経る**
 - **新しいエントリを作る前に、既存語彙で表現できないかを確認する**
-- **関係フィールドは必須。空のまま登録しない**
+- **関係フィールドは必須。空のまま登録しない**（独立した原始概念で他の概念と関係を持たない場合は `definition` にその旨を明記する）
 
 ## 成果物
 
