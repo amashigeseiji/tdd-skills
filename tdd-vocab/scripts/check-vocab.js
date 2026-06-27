@@ -25,21 +25,9 @@ const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
 
 function parseDictionary(filePath) {
   if (!fs.existsSync(filePath)) return { contexts: [], concepts: [] };
-  const lines = fs.readFileSync(filePath, 'utf-8').split('\n');
-  const contexts = []; // { name: string, dir: string | null }
-  const concepts = [];
-  let current = null;
-
-  for (const line of lines) {
-    if (line.startsWith('## ')) {
-      current = { name: line.slice(3).trim(), dir: null };
-      contexts.push(current);
-    } else if (line.startsWith('### ')) {
-      concepts.push(line.slice(4).trim());
-    } else if (current && /^\*\*dir:\*\*/.test(line)) {
-      current.dir = line.replace(/^\*\*dir:\*\*\s*/, '').trim();
-    }
-  }
+  const dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  const contexts = (dict.contexts || []).map(c => ({ name: c.name, dir: c.dir }));
+  const concepts = (dict.entries || []).map(e => e.name);
   return { contexts, concepts };
 }
 
@@ -60,9 +48,9 @@ function scanImplementations(dir) {
         const vocabs = [];
         const tests = [];
         for (const line of lines) {
-          // @vocab: 概念名 (path/to/dictionary.md#概念名)
-          const vm = line.match(/@vocab:?\s+(.+?)\s+\((.+?)\)/);
-          if (vm) vocabs.push({ name: vm[1].trim(), ref: vm[2].trim() });
+          // @vocab: 概念名
+          const vm = line.match(/@vocab:?\s+(.+)/);
+          if (vm) vocabs.push({ name: vm[1].trim() });
           // @test: path/to/file.test.js
           const tm = line.match(/@test:?\s+(.+)/);
           if (tm) tests.push(tm[1].trim());
@@ -85,14 +73,14 @@ function getTestContextDirs(dir) {
 
 // ---- 収集 -------------------------------------------------------------------
 
-const stableDict = parseDictionary(path.join(root, 'docs/dictionary.md'));
+const stableDict = parseDictionary(path.join(root, 'docs/dictionary.json'));
 const wipContexts = [];
 const wipConcepts = [];
 
 const plansDir = path.join(root, 'plans');
 if (fs.existsSync(plansDir)) {
   for (const plan of fs.readdirSync(plansDir)) {
-    const wipPath = path.join(plansDir, plan, 'dictionary.md');
+    const wipPath = path.join(plansDir, plan, 'dictionary.json');
     const wip = parseDictionary(wipPath);
     wipContexts.push(...wip.contexts);
     wipConcepts.push(...wip.concepts);
@@ -117,13 +105,9 @@ const warnings = [];
 for (const { file, vocabs, tests } of impls) {
   const rel = path.relative(root, file);
 
-  for (const { name, ref } of vocabs) {
+  for (const { name } of vocabs) {
     if (!allConcepts.has(name)) {
       errors.push(`[リンク切れ] ${rel}: @vocab "${name}" — 辞書に存在しない`);
-    }
-    const dictFile = ref.split('#')[0];
-    if (!fs.existsSync(path.join(root, dictFile))) {
-      errors.push(`[ファイル不在] ${rel}: @vocab の参照先ファイル "${dictFile}" が存在しない`);
     }
   }
 
