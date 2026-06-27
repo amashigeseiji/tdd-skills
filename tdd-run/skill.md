@@ -177,7 +177,7 @@ node <meta>/.claude/tdd/dict-search.js <キーワード> <plans_dir>
 「X とは xxx ができるような何かだ」という形で表現する。
 名前は**日本語の概念名**で定める（例: `フロントマターテンプレートローダー`）。
 名前が定まったら `plans/<project>/dictionary.json` の entries 配列に追加する:
-`name`（日本語）・`en`・`context`・`domain:"application"`・`definition`・`relations:[]`・`src:null`・`wip:{status:"new",discovered:"tdd-run"}`
+`{"name":"<概念名>","en":"EnglishName","context":"<context>","domain":"application","definition":"xxx ができるもの","relations":[],"src":null,"wip":{"status":"new","discovered":"tdd-run"}}`
 
 ルートXが定まったら、手順1で確認したエントリーポイントとXの関係を宣言する:
 
