@@ -71,9 +71,10 @@ mkdir -p <meta>/.claude/tdd/workflow-state
 workflow.md の「ステップ」セクションを頭から実行する。
 各ステップの完了時に状態ファイルの `step` を更新する。
 
-tdd-run の呼び出しは Agent ツール経由（auto モード）で行う:
+tdd-run の呼び出し:
 
-> `tdd-run/skill.md` を読み、project `<project>` の tdd-run を **auto モード**で実行してください。
+`/tdd-run` を起動してプロジェクト `<project>` の実装フェーズを開始する。
+tdd-run はインタラクティブに進む。セッション終了メッセージが表示されたら次のステップへ進む。
 
 tdd-feedback の呼び出しはメインスレッドで `/tdd-feedback` を呼ぶ（利用インタビューがあるため）。
 
@@ -145,6 +146,5 @@ rm <meta>/.claude/tdd/workflow-state/<project>.json
 
 ## 制約
 
-- **tdd-run の実行中はユーザーへの確認を行わない**（auto モード）
 - **problem.md を書き直さない**（/tdd-problem の仕事）
 - **docs/dictionary.json を直接編集しない**（/tdd-vocab promote 経由のみ）
