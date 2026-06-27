@@ -30,10 +30,6 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 ```bash
-# 辞書（安定版と作業中）
-cat <meta>/docs/dictionary.json 2>/dev/null
-cat <meta>/plans/*/dictionary.json 2>/dev/null
-
 # 問題定義（スコープ内の全プラン）
 cat <meta>/plans/*/problem.md
 
@@ -41,6 +37,14 @@ cat <meta>/plans/*/problem.md
 node "$(realpath "${CLAUDE_SKILL_DIR}")/../tdd-vocab/scripts/generate-map.js" [src-dirs]
 node "$(realpath "${CLAUDE_SKILL_DIR}")/../tdd-vocab/scripts/check-vocab.js" [test-dir]
 ```
+
+辞書は全量ロードせず、観察中に必要な概念を検索する:
+
+```bash
+node <meta>/.claude/tdd/dict-search.js <概念名> <plans_dir>
+```
+
+該当エントリとその関連エントリ（深さ1）が返る。plans/ 側のエントリが docs/ 側より優先される。
 
 スクリプトが使えない場合:
 
