@@ -24,7 +24,7 @@ const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
 // ---- パーサー ---------------------------------------------------------------
 
 function parseDictionary(filePath) {
-  if (!fs.existsSync(filePath)) return { contexts: [], concepts: [] };
+  if (!fs.existsSync(filePath)) return { contexts: [], concepts: [], conceptsByContext: [] };
   let dict;
   try {
     dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -33,7 +33,8 @@ function parseDictionary(filePath) {
   }
   const contexts = (dict.contexts || []).map(c => ({ name: c.name, dir: c.dir }));
   const concepts = (dict.entries || []).map(e => e.name);
-  return { contexts, concepts };
+  const conceptsByContext = (dict.entries || []).map(e => `${e.context}::${e.name}`);
+  return { contexts, concepts, conceptsByContext };
 }
 
 function scanImplementations(dir) {
@@ -53,9 +54,17 @@ function scanImplementations(dir) {
         const vocabs = [];
         const tests = [];
         for (const line of lines) {
-          // @vocab: 概念名
+          // @vocab: 概念名 または @vocab: 概念名[context]
           const vm = line.match(/@vocab:?\s+(.+)/);
-          if (vm) vocabs.push({ name: vm[1].trim() });
+          if (vm) {
+            const raw = vm[1].trim();
+            const ctxMatch = raw.match(/^(.+?)\[([^\]]+)\]$/);
+            if (ctxMatch) {
+              vocabs.push({ name: ctxMatch[1].trim(), context: ctxMatch[2].trim() });
+            } else {
+              vocabs.push({ name: raw, context: null });
+            }
+          }
           // @test: path/to/file.test.js
           const tm = line.match(/@test:?\s+(.+)/);
           if (tm) tests.push(tm[1].trim());
@@ -81,6 +90,7 @@ function getTestContextDirs(dir) {
 const stableDict = parseDictionary(path.join(root, 'docs/dictionary.json'));
 const wipContexts = [];
 const wipConcepts = [];
+const wipConceptsByContext = [];
 
 const plansDir = path.join(root, 'plans');
 if (fs.existsSync(plansDir)) {
@@ -89,10 +99,12 @@ if (fs.existsSync(plansDir)) {
     const wip = parseDictionary(wipPath);
     wipContexts.push(...wip.contexts);
     wipConcepts.push(...wip.concepts);
+    wipConceptsByContext.push(...wip.conceptsByContext);
   }
 }
 
 const allConcepts = new Set([...stableDict.concepts, ...wipConcepts]);
+const allConceptsByContext = new Set([...stableDict.conceptsByContext, ...wipConceptsByContext]);
 const allContextDirs = new Set(
   [...stableDict.contexts, ...wipContexts].map(c => c.dir || c.name)
 );
@@ -110,9 +122,15 @@ const warnings = [];
 for (const { file, vocabs, tests } of impls) {
   const rel = path.relative(root, file);
 
-  for (const { name } of vocabs) {
-    if (!allConcepts.has(name)) {
-      errors.push(`[リンク切れ] ${rel}: @vocab "${name}" — 辞書に存在しない`);
+  for (const { name, context } of vocabs) {
+    if (context) {
+      if (!allConceptsByContext.has(`${context}::${name}`)) {
+        errors.push(`[リンク切れ] ${rel}: @vocab "${name}[${context}]" — 辞書に存在しない`);
+      }
+    } else {
+      if (!allConcepts.has(name)) {
+        errors.push(`[リンク切れ] ${rel}: @vocab "${name}" — 辞書に存在しない`);
+      }
     }
   }
 
