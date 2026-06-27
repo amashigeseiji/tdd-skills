@@ -48,14 +48,14 @@ function parseAnnotations(filePath) {
   while (i < lines.length) {
     const t = lines[i].trim()
 
-    if (/^\/\/ @vocab:/.test(t) || /^\/\/ @test:/.test(t)) {
+    if (/ @vocab[:\s]/.test(t) || / @test[:\s]/.test(t)) {
       const block = { vocabs: [], tests: [] }
 
       while (i < lines.length) {
         const l = lines[i].trim()
-        const vocabMatch = l.match(/^\/\/ @vocab:\s+(.+)/)
+        const vocabMatch = l.match(/ @vocab:?\s+(.+)/)
         if (vocabMatch) { block.vocabs.push(vocabMatch[1].trim()); i++; continue }
-        const testMatch = l.match(/^\/\/ @test:\s+(.+)/)
+        const testMatch = l.match(/ @test:?\s+(.+)/)
         if (testMatch) { block.tests.push(testMatch[1].trim()); i++; continue }
         break
       }
