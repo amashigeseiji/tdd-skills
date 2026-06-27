@@ -66,7 +66,7 @@ const suggestions = [];
 
 for (const implFile of implFiles) {
   const content = fs.readFileSync(implFile, 'utf-8');
-  if (content.includes('@test:')) continue; // 既にアノテーションあり
+  if (/ @test[:\s]/.test(content)) continue; // 既にアノテーションあり
 
   const candidates = findTestsForImpl(implFile);
   if (candidates.length > 0) {

@@ -35,8 +35,8 @@ done
 
 ```bash
 # 辞書（安定版と作業中）
-cat <meta>/docs/dictionary.md 2>/dev/null
-cat <meta>/plans/*/dictionary.md 2>/dev/null
+cat <meta>/docs/dictionary.json 2>/dev/null
+cat <meta>/plans/*/dictionary.json 2>/dev/null
 
 # 問題定義（スコープ内の全プラン）
 cat <meta>/plans/*/problem.md
@@ -157,7 +157,7 @@ B の同一性を示すシグナル:
   ソートも行っている。辞書の定義と責務が一致していない。
 
 **[B] 構造的な正確さ（2件）**
-- `@vocab: 在庫チェッカー (plans/inventory/dictionary.md#在庫チェッカー)` — promote 済みだがパスが旧のまま
+- `@vocab: 在庫チェッカー` — エントリ名が辞書に存在しない（辞書では「在庫確認」に改名済み）
 - 辞書の「配送ルール」エントリに対応する @vocab を持つ実装が見当たらない
 
 **[C] 理解可能性（1件）**
@@ -180,7 +180,7 @@ B の同一性を示すシグナル:
 ### 実施する変更
 
 1. `filterOrders()` を絞り込みのみに責務を絞り、ソートを分離する
-2. @vocab のパスを plans/ から docs/ に更新（1箇所）
+2. `@vocab: 在庫チェッカー` を `@vocab: 在庫確認` に更新（1箇所）
 3. 「配送ルール」の実装を確認してユーザーに報告（対応実装がないなら辞書エントリを削除か実装を追加か選ぶ）
 4. `formatLegacyDate()` を削除
 5. `buildRequest()` を src/request/ に切り出す
@@ -206,7 +206,7 @@ B の同一性を示すシグナル:
 **B の独立化（新コンテキストの切り出し）:**
 
 1. `plans/<name>/problem.md` を書く（何が「できない」状態で、独立したコンテキストとして扱う理由を記述する）
-2. `/tdd-vocab plan` を呼んで `plans/<name>/dictionary.md` を作る（辞書にない名前でコードを書かない）
+2. `/tdd-vocab plan` を呼んで `plans/<name>/dictionary.json` を作る（辞書にない名前でコードを書かない）
 3. 実装・テストを新しいディレクトリに移動する
 3. 元コンテキストの辞書エントリに「参照: 新コンテキスト」を追記する
 4. 独立した問題として扱う価値があれば「/tdd-problem の候補です」と一言添えるだけにとどめる
