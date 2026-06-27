@@ -131,10 +131,9 @@ ls packages/ 2>/dev/null || true
 
 確定した内容を一コンテキストずつ書く。ソリューションドメインは空エントリのまま。
 
-`contexts` 配列にコンテキスト定義を追加し、`entries` 配列に概念エントリを追加する:
+`contexts` 配列にコンテキスト定義を追加する:
 
 ```json
-// contexts 配列への追加
 {
   "dir": "<英語 kebab-case 名>",
   "name": "<コンテキスト名>",
@@ -143,8 +142,11 @@ ls packages/ 2>/dev/null || true
   "in_scope": "<境界の内>",
   "out_of_scope": "<境界の外>"
 }
+```
 
-// entries 配列への追加（アプリケーションドメイン）
+`entries` 配列にアプリケーションドメインの概念エントリを追加する:
+
+```json
 {
   "name": "<概念名>",
   "en": "EnglishName",
@@ -219,15 +221,19 @@ promote でコンテキストが吸収される場合はディレクトリ移動
 `contexts` 配列にコンテキスト定義を、`entries` 配列にアプリドメインエントリを追加する。
 ソリューションドメインエントリは tdd-run の手順4で追加される。
 
+`contexts` 配列への追加:
+
 ```json
-// contexts 配列への追加
 {
   "dir": "<英語 kebab-case 名>",
   "name": "<コンテキスト名>",
   "description": "<このコンテキストが扱う関心領域の一文説明>"
 }
+```
 
-// entries 配列への追加（アプリケーションドメイン）
+`entries` 配列への追加（アプリケーションドメイン）:
+
+```json
 {
   "name": "<概念名>",
   "en": "EnglishName",
@@ -323,7 +329,7 @@ node <meta>/.claude/tdd/dict-search.js <関数名やキーワード> [<plans_dir
 - 関数名・クラス名が辞書エントリ名（または英訳・略称）と対応しているか
 - 関数の責務（何をするか）が辞書の「定義」と一致するか
 - 複数の概念を実現している場合は複数の `@vocab` を付ける（セミラティスの共有ノードはその典型）
-- wip（plans/*/dictionary.json）にある概念ならそのパスを使う
+- stable・wip どちらの概念も概念名のみを記載する（`// @vocab: 概念名`）
 
 **4. アノテーションを挿入する**
 

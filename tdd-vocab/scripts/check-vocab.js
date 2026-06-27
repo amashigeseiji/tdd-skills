@@ -25,7 +25,12 @@ const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
 
 function parseDictionary(filePath) {
   if (!fs.existsSync(filePath)) return { contexts: [], concepts: [] };
-  const dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  let dict;
+  try {
+    dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch (e) {
+    throw new Error(`dictionary parse failed: ${filePath}\n${e.message}`);
+  }
   const contexts = (dict.contexts || []).map(c => ({ name: c.name, dir: c.dir }));
   const concepts = (dict.entries || []).map(e => e.name);
   return { contexts, concepts };

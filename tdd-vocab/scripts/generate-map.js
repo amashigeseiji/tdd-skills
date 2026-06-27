@@ -8,9 +8,15 @@ const ROOT = process.cwd()
 
 function parseDictionary(filePath) {
   if (!fs.existsSync(filePath)) return {}
-  const dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+  let dict
+  try {
+    dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'))
+  } catch (e) {
+    throw new Error(`dictionary parse failed: ${filePath}\n${e.message}`)
+  }
   const result = {}   // dir -> [{ word, definition }]
   for (const entry of (dict.entries || [])) {
+    if (!entry.context) continue
     const dir = entry.context
     if (!result[dir]) result[dir] = []
     result[dir].push({ word: entry.name, definition: entry.definition || '' })
@@ -48,7 +54,7 @@ function parseAnnotations(filePath) {
       while (i < lines.length) {
         const l = lines[i].trim()
         const vocabMatch = l.match(/^\/\/ @vocab:\s+(.+)/)
-        if (vocabMatch) { block.vocabs.push(vocabMatch[1]); i++; continue }
+        if (vocabMatch) { block.vocabs.push(vocabMatch[1].trim()); i++; continue }
         const testMatch = l.match(/^\/\/ @test:\s+(.+)/)
         if (testMatch) { block.tests.push(testMatch[1].trim()); i++; continue }
         break
