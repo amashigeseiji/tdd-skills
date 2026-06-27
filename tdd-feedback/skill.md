@@ -40,8 +40,8 @@ done
 cat <plans_dir>/problem.md
 cat <plans_dir>/test-tree.md 2>/dev/null
 cat <plans_dir>/observations.md 2>/dev/null
-cat <plans_dir>/dictionary.md 2>/dev/null
-cat <meta>/docs/dictionary.md 2>/dev/null
+cat <plans_dir>/dictionary.json 2>/dev/null
+cat <meta>/docs/dictionary.json 2>/dev/null
 ```
 
 ---
@@ -67,7 +67,7 @@ cat <meta>/docs/dictionary.md 2>/dev/null
 ```
 ## 成果物レビュー
 
-語彙（plans/<project>/dictionary.md）:
+語彙（plans/<project>/dictionary.json）:
 - （問題なし / 懸念点があれば記述）
 
 ソリューション構造（test-tree.md）:
@@ -77,7 +77,7 @@ cat <meta>/docs/dictionary.md 2>/dev/null
 - （特記事項があれば記述）
 ```
 
-問題がなければ `/tdd-vocab promote` を呼び、wip 語彙を `docs/dictionary.md` に昇格する。
+問題がなければ `/tdd-vocab promote` を呼び、wip 語彙を `docs/dictionary.json` に昇格する。
 問題があれば promote を保留し、findings に記録する。
 
 > **NOTE（要検討）:** `/tdd-vocab promote` の照合プロセス（辞書マッピングの検証）を
@@ -214,5 +214,5 @@ mv <meta>/plans/<project>/ <meta>/plans/archives/<project>/
 ## 成果物
 
 1. **plans/<project>/findings.md** — 成果物レビュー・利用インタビューの統合結果（戻し先つき）
-2. **docs/dictionary.md** への昇格（語彙レビューが通った場合）
+2. **docs/dictionary.json** への昇格（語彙レビューが通った場合）
 3. **plans/archives/<project>/** — クローズ時にプランディレクトリごとアーカイブ

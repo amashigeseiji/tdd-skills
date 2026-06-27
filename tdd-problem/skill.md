@@ -69,7 +69,7 @@ find <meta>/plans -name "problem.md" -type f -not -path "<meta>/plans/archives/*
 - 現状の実装が、なぜその問題を生んでいるか
 - CLAUDE.md / README.md
 
-**`docs/dictionary.md` が存在する場合、アプリケーションドメインの語彙を確認する。**
+**`docs/dictionary.json` が存在する場合、アプリケーションドメインの語彙を確認する。**
 問題を既存のアプリケーションドメイン語彙で語れるかを試みる:
 - 語れる概念: 問題の記述にそのまま使う（ソリューションドメインの語彙は問題記述に持ち込まない）
 - 語れない概念: メモしておく（/tdd-run への申し送りで「語彙定義の種」として渡す）
@@ -234,7 +234,7 @@ find <meta>/plans -name "problem.md" -type f -not -path "<meta>/plans/archives/*
 ## /tdd-run への申し送り
 
 - [問題を語る上で登場した概念——語彙定義の種になるもの]
-- [既存の docs/dictionary.md で語れなかった概念（新規語彙の候補）]
+- [既存の docs/dictionary.json で語れなかった概念（新規語彙の候補）]
 - [未確定のまま「問題として開いている」点]
 - [「解決したと言える状態」の解釈で揺れがある点]
 
