@@ -29,9 +29,9 @@ wip コンテキストが既存コンテキストに吸収される（dir 名が
    ```
 2. 移動したファイルを参照する `@test` を書きかえる:
    ```bash
-   grep -rl "@test.*tests/<wip-dir>/" . \
-     --include="*.js" --include="*.ts" \
-     | xargs sed -i '' 's|tests/<wip-dir>/|tests/<stable-dir>/|g'
+   find . \( -name "*.js" -o -name "*.ts" \) -print0 \
+     | xargs -0 grep -l "@test.*tests/<wip-dir>/" \
+     | xargs sed -i.bak 's|tests/<wip-dir>/|tests/<stable-dir>/|g'
    ```
 
 **3. 再定義の場合は影響を確認する**
