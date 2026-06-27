@@ -147,4 +147,4 @@ rm <meta>/.claude/tdd/workflow-state/<project>.json
 
 - **tdd-run の実行中はユーザーへの確認を行わない**（auto モード）
 - **problem.md を書き直さない**（/tdd-problem の仕事）
-- **docs/dictionary.md を直接編集しない**（/tdd-vocab promote 経由のみ）
+- **docs/dictionary.json を直接編集しない**（/tdd-vocab promote 経由のみ）

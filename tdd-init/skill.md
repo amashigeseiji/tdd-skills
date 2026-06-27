@@ -6,7 +6,7 @@
 
 1. **config.json の作成** — `.claude/tdd/config.json` を作成する
 2. **scaffold の初期化** — `/tdd-scaffold` を呼び、`.claude/tdd/scaffold.sh` を生成する
-3. **語彙の初期化** — `/tdd-vocab init` を呼び、`docs/dictionary.md` を作成する
+3. **語彙の初期化** — `/tdd-vocab init` を呼び、`docs/dictionary.json` を作成する
 
 `workflow.md`（`.claude/tdd/workflow.md`）は `/tdd-workflow` の初回起動時にヒアリングして生成する。`/tdd-init` では作成しない。
 
@@ -62,4 +62,4 @@ echo 'plans/' >> .gitignore
 
 - `.claude/tdd/config.json` — メタレポルートの絶対パス（`meta_repo`）
 - `.claude/tdd/scaffold.sh` — スタブ生成スクリプト（tdd-scaffold が作成）
-- `docs/dictionary.md` — 初期語彙定義（tdd-vocab init が作成）
+- `docs/dictionary.json` — 初期語彙定義（tdd-vocab init が作成）
