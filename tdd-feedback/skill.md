@@ -36,9 +36,15 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 cat <plans_dir>/problem.md
 cat <plans_dir>/test-tree.md 2>/dev/null
 cat <plans_dir>/observations.md 2>/dev/null
-cat <plans_dir>/dictionary.json 2>/dev/null
-cat <meta>/docs/dictionary.json 2>/dev/null
 ```
+
+辞書は全量ロードせず、成果物レビュー中に必要な概念を検索する:
+
+```bash
+node <meta>/.claude/tdd/dict-search.js <概念名> <plans_dir>
+```
+
+該当エントリとその関連エントリ（深さ1）が返る。plans/ 側のエントリが docs/ 側より優先される。
 
 ---
 
