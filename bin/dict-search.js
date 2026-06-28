@@ -55,7 +55,8 @@ function searchContexts(contexts, query) {
   );
 }
 
-function formatContext(ctx) {
+function formatContext(ctx, summary = false) {
+  if (summary) return `- ${ctx.name} [context: ${ctx.dir}]`;
   const lines = [];
   lines.push(`### ${ctx.name} [context: ${ctx.dir}]`);
   if (ctx.description) lines.push(`**概要:** ${ctx.description}`);
@@ -85,9 +86,14 @@ function findByName(entries, name) {
 
 function key(e) { return `${e.context}::${e.name}`; }
 
-function formatEntry(entry) {
-  const lines = [];
+function formatEntry(entry, summary = false) {
   const enPart = entry.en ? ` (${entry.en})` : '';
+  if (summary) {
+    const related = getRelatedNames(entry);
+    const relPart = related.length > 0 ? ` → ${related.join(', ')}` : '';
+    return `- ${entry.name}${enPart} [${entry.context}/${entry.domain}]${relPart}`;
+  }
+  const lines = [];
   lines.push(`### ${entry.name}${enPart} [${entry.context}/${entry.domain}]`);
   lines.push(`**定義:** ${entry.definition}`);
   if (entry.relations && entry.relations.length > 0) {
@@ -106,9 +112,12 @@ function main() {
   const args = process.argv.slice(2);
   const queries = [];
   let plansDir;
+  let summary = false;
 
   for (const arg of args) {
-    if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
+    if (arg === '--summary' || arg === '-s') {
+      summary = true;
+    } else if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
       plansDir = arg;
     } else {
       queries.push(arg);
@@ -116,7 +125,7 @@ function main() {
   }
 
   if (queries.length === 0) {
-    console.error('Usage: dict-search.js <query> [<query2> ...] [<plans_dir>]');
+    console.error('Usage: dict-search.js [--summary|-s] <query> [<query2> ...] [<plans_dir>]');
     process.exit(1);
   }
 
@@ -157,12 +166,14 @@ function main() {
   }
 
   const relatedEntries = [];
-  for (const m of matches) {
-    for (const name of getRelatedNames(m)) {
-      for (const e of findByName(allEntries, name)) {
-        if (!seenEntryKeys.has(key(e))) {
-          relatedEntries.push(e);
-          seenEntryKeys.add(key(e));
+  if (!summary) {
+    for (const m of matches) {
+      for (const name of getRelatedNames(m)) {
+        for (const e of findByName(allEntries, name)) {
+          if (!seenEntryKeys.has(key(e))) {
+            relatedEntries.push(e);
+            seenEntryKeys.add(key(e));
+          }
         }
       }
     }
@@ -173,21 +184,23 @@ function main() {
   if (contextMatches.length > 0) {
     console.log(`### コンテキスト (${contextMatches.length}件)\n`);
     for (const c of contextMatches) {
-      console.log(formatContext(c));
-      console.log('');
+      console.log(formatContext(c, summary));
+      if (!summary) console.log('');
     }
+    if (summary) console.log('');
   }
   if (matches.length > 0) {
     console.log(`### エントリ (${matches.length}件)\n`);
     for (const e of matches) {
-      console.log(formatEntry(e));
-      console.log('');
+      console.log(formatEntry(e, summary));
+      if (!summary) console.log('');
     }
+    if (summary) console.log('');
   }
   if (relatedEntries.length > 0) {
     console.log(`### 関連エントリ (${relatedEntries.length}件)\n`);
     for (const e of relatedEntries) {
-      console.log(formatEntry(e));
+      console.log(formatEntry(e, summary));
       console.log('');
     }
   }
