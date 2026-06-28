@@ -61,7 +61,7 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 以降の `docs/` および `plans/` パスはすべて `<meta>/docs/` と `<meta>/plans/` として扱う。
-辞書の検索には `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <概念名> [<plans_dir>]` を使う。
+辞書の検索には `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js"` を使う。`-s` で1行サマリー、`-n` で名前フィールドのみ検索、`-d1` で関連エントリ展開、複数キーワードを並べると OR 検索。
 
 ---
 
