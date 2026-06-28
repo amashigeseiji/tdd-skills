@@ -103,11 +103,20 @@ function formatEntry(entry) {
 }
 
 function main() {
-  const query = process.argv[2];
-  const plansDir = process.argv[3];
+  const args = process.argv.slice(2);
+  const queries = [];
+  let plansDir;
 
-  if (!query) {
-    console.error('Usage: dict-search.js <query> [<plans_dir>]');
+  for (const arg of args) {
+    if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
+      plansDir = arg;
+    } else {
+      queries.push(arg);
+    }
+  }
+
+  if (queries.length === 0) {
+    console.error('Usage: dict-search.js <query> [<query2> ...] [<plans_dir>]');
     process.exit(1);
   }
 
@@ -120,28 +129,47 @@ function main() {
   const allEntries = mergeEntries(docDict.entries || [], planDict.entries || []);
   const allContexts = mergeContexts(docDict.contexts || [], planDict.contexts || []);
 
-  const contextMatches = searchContexts(allContexts, query);
-  const matches = search(allEntries, query);
+  // Collect deduplicated results across all queries.
+  const seenContextDirs = new Set();
+  const seenEntryKeys = new Set();
+  const contextMatches = [];
+  const matches = [];
+
+  for (const query of queries) {
+    for (const c of searchContexts(allContexts, query)) {
+      if (!seenContextDirs.has(c.dir)) {
+        seenContextDirs.add(c.dir);
+        contextMatches.push(c);
+      }
+    }
+    for (const e of search(allEntries, query)) {
+      if (!seenEntryKeys.has(key(e))) {
+        seenEntryKeys.add(key(e));
+        matches.push(e);
+      }
+    }
+  }
 
   if (contextMatches.length === 0 && matches.length === 0) {
-    console.log(`(「${query}」に一致するエントリなし)`);
+    const label = queries.map(q => `「${q}」`).join(' ');
+    console.log(`(${label}に一致するエントリなし)`);
     return;
   }
 
-  const matchKeys = new Set(matches.map(key));
   const relatedEntries = [];
   for (const m of matches) {
     for (const name of getRelatedNames(m)) {
       for (const e of findByName(allEntries, name)) {
-        if (!matchKeys.has(key(e))) {
+        if (!seenEntryKeys.has(key(e))) {
           relatedEntries.push(e);
-          matchKeys.add(key(e));
+          seenEntryKeys.add(key(e));
         }
       }
     }
   }
 
-  console.log(`## 検索結果: "${query}"\n`);
+  const queryLabel = queries.map(q => `"${q}"`).join(' ');
+  console.log(`## 検索結果: ${queryLabel}\n`);
   if (contextMatches.length > 0) {
     console.log(`### コンテキスト (${contextMatches.length}件)\n`);
     for (const c of contextMatches) {
@@ -151,10 +179,10 @@ function main() {
   }
   if (matches.length > 0) {
     console.log(`### エントリ (${matches.length}件)\n`);
-  }
-  for (const e of matches) {
-    console.log(formatEntry(e));
-    console.log('');
+    for (const e of matches) {
+      console.log(formatEntry(e));
+      console.log('');
+    }
   }
   if (relatedEntries.length > 0) {
     console.log(`### 関連エントリ (${relatedEntries.length}件)\n`);
