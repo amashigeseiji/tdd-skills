@@ -39,6 +39,32 @@ function mergeEntries(docEntries, planEntries) {
   return Array.from(map.values());
 }
 
+function mergeContexts(docContexts, planContexts) {
+  const map = new Map();
+  for (const c of docContexts) map.set(c.dir, c);
+  for (const c of planContexts) map.set(c.dir, c);
+  return Array.from(map.values());
+}
+
+function searchContexts(contexts, query) {
+  return contexts.filter(c =>
+    c.name.includes(query) ||
+    (c.description && c.description.includes(query)) ||
+    (c.in_scope && c.in_scope.includes(query)) ||
+    (c.out_of_scope && c.out_of_scope.includes(query))
+  );
+}
+
+function formatContext(ctx) {
+  const lines = [];
+  lines.push(`### ${ctx.name} [context: ${ctx.dir}]`);
+  if (ctx.description) lines.push(`**概要:** ${ctx.description}`);
+  if (ctx.primary_users) lines.push(`**主な利用者:** ${ctx.primary_users}`);
+  if (ctx.in_scope) lines.push(`**スコープ内:** ${ctx.in_scope}`);
+  if (ctx.out_of_scope) lines.push(`**スコープ外:** ${ctx.out_of_scope}`);
+  return lines.join('\n');
+}
+
 function search(entries, query) {
   return entries.filter(e =>
     e.name.includes(query) ||
@@ -92,10 +118,12 @@ function main() {
     : { contexts: [], entries: [] };
 
   const allEntries = mergeEntries(docDict.entries || [], planDict.entries || []);
+  const allContexts = mergeContexts(docDict.contexts || [], planDict.contexts || []);
 
+  const contextMatches = searchContexts(allContexts, query);
   const matches = search(allEntries, query);
 
-  if (matches.length === 0) {
+  if (contextMatches.length === 0 && matches.length === 0) {
     console.log(`(「${query}」に一致するエントリなし)`);
     return;
   }
@@ -114,7 +142,16 @@ function main() {
   }
 
   console.log(`## 検索結果: "${query}"\n`);
-  console.log(`### マッチ (${matches.length}件)\n`);
+  if (contextMatches.length > 0) {
+    console.log(`### コンテキスト (${contextMatches.length}件)\n`);
+    for (const c of contextMatches) {
+      console.log(formatContext(c));
+      console.log('');
+    }
+  }
+  if (matches.length > 0) {
+    console.log(`### エントリ (${matches.length}件)\n`);
+  }
   for (const e of matches) {
     console.log(formatEntry(e));
     console.log('');
