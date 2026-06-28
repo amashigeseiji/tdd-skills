@@ -46,12 +46,12 @@ function mergeContexts(docContexts, planContexts) {
   return Array.from(map.values());
 }
 
-function searchContexts(contexts, query) {
+function searchContexts(contexts, query, nameOnly = false) {
   return contexts.filter(c =>
     c.name.includes(query) ||
-    (c.description && c.description.includes(query)) ||
-    (c.in_scope && c.in_scope.includes(query)) ||
-    (c.out_of_scope && c.out_of_scope.includes(query))
+    (!nameOnly && c.description && c.description.includes(query)) ||
+    (!nameOnly && c.in_scope && c.in_scope.includes(query)) ||
+    (!nameOnly && c.out_of_scope && c.out_of_scope.includes(query))
   );
 }
 
@@ -66,11 +66,11 @@ function formatContext(ctx, summary = false) {
   return lines.join('\n');
 }
 
-function search(entries, query) {
+function search(entries, query, nameOnly = false) {
   return entries.filter(e =>
     e.name.includes(query) ||
     (e.en && e.en.toLowerCase().includes(query.toLowerCase())) ||
-    e.definition.includes(query)
+    (!nameOnly && e.definition.includes(query))
   );
 }
 
@@ -85,6 +85,33 @@ function findByName(entries, name) {
 }
 
 function key(e) { return `${e.context}::${e.name}`; }
+
+function isExactMatch(name, queries) {
+  return queries.some(q => q === name);
+}
+
+function expandRelations(seeds, allEntries, depth, seenKeys) {
+  if (depth === 0) return [];
+  const result = [];
+  let frontier = seeds;
+  for (let d = 0; d < depth; d++) {
+    const next = [];
+    for (const m of frontier) {
+      for (const name of getRelatedNames(m)) {
+        for (const e of findByName(allEntries, name)) {
+          if (!seenKeys.has(key(e))) {
+            seenKeys.add(key(e));
+            result.push(e);
+            next.push(e);
+          }
+        }
+      }
+    }
+    frontier = next;
+    if (frontier.length === 0) break;
+  }
+  return result;
+}
 
 function formatEntry(entry, summary = false) {
   const enPart = entry.en ? ` (${entry.en})` : '';
@@ -113,10 +140,19 @@ function main() {
   const queries = [];
   let plansDir;
   let summary = false;
+  let depth = 0;
+  let nameOnly = false;
 
-  for (const arg of args) {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
     if (arg === '--summary' || arg === '-s') {
       summary = true;
+    } else if (arg === '--name-only' || arg === '-n') {
+      nameOnly = true;
+    } else if (arg === '--depth' || arg === '-d') {
+      depth = parseInt(args[++i], 10) || 0;
+    } else if (/^-d(\d+)$/.test(arg)) {
+      depth = parseInt(arg.slice(2), 10) || 0;
     } else if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
       plansDir = arg;
     } else {
@@ -125,7 +161,7 @@ function main() {
   }
 
   if (queries.length === 0) {
-    console.error('Usage: dict-search.js [--summary|-s] <query> [<query2> ...] [<plans_dir>]');
+    console.error('Usage: dict-search.js [-s] [-n] [-d <depth>] <query> [<query2> ...] [<plans_dir>]');
     process.exit(1);
   }
 
@@ -145,13 +181,13 @@ function main() {
   const matches = [];
 
   for (const query of queries) {
-    for (const c of searchContexts(allContexts, query)) {
+    for (const c of searchContexts(allContexts, query, nameOnly)) {
       if (!seenContextDirs.has(c.dir)) {
         seenContextDirs.add(c.dir);
         contextMatches.push(c);
       }
     }
-    for (const e of search(allEntries, query)) {
+    for (const e of search(allEntries, query, nameOnly)) {
       if (!seenEntryKeys.has(key(e))) {
         seenEntryKeys.add(key(e));
         matches.push(e);
@@ -165,35 +201,25 @@ function main() {
     return;
   }
 
-  const relatedEntries = [];
-  if (!summary) {
-    for (const m of matches) {
-      for (const name of getRelatedNames(m)) {
-        for (const e of findByName(allEntries, name)) {
-          if (!seenEntryKeys.has(key(e))) {
-            relatedEntries.push(e);
-            seenEntryKeys.add(key(e));
-          }
-        }
-      }
-    }
-  }
+  const relatedEntries = expandRelations(matches, allEntries, depth, seenEntryKeys);
 
   const queryLabel = queries.map(q => `"${q}"`).join(' ');
   console.log(`## 検索結果: ${queryLabel}\n`);
   if (contextMatches.length > 0) {
     console.log(`### コンテキスト (${contextMatches.length}件)\n`);
     for (const c of contextMatches) {
-      console.log(formatContext(c, summary));
-      if (!summary) console.log('');
+      const expand = !summary || isExactMatch(c.name, queries);
+      console.log(formatContext(c, !expand));
+      if (expand) console.log('');
     }
     if (summary) console.log('');
   }
   if (matches.length > 0) {
     console.log(`### エントリ (${matches.length}件)\n`);
     for (const e of matches) {
-      console.log(formatEntry(e, summary));
-      if (!summary) console.log('');
+      const expand = !summary || isExactMatch(e.name, queries);
+      console.log(formatEntry(e, !expand));
+      if (expand) console.log('');
     }
     if (summary) console.log('');
   }
@@ -201,7 +227,7 @@ function main() {
     console.log(`### 関連エントリ (${relatedEntries.length}件)\n`);
     for (const e of relatedEntries) {
       console.log(formatEntry(e, summary));
-      console.log('');
+      if (!summary) console.log('');
     }
   }
 }
