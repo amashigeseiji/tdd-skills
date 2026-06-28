@@ -22,7 +22,8 @@ node ${CLAUDE_SKILL_DIR}/scripts/suggest-annotations.js [test-dir]
 アノテーション対象の関数名・クラス名をキーワードに `dict-search.js` を使って照合する:
 
 ```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <関数名やキーワード> [<plans_dir>]
+# -n: 名前フィールドのみ検索（定義文のノイズを除く）、複数関数名を一括スキャン可
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -n -s <関数名> [<関数名2> ...] [<plans_dir>]
 ```
 
 **3. 対象ファイルを読んで照合する**

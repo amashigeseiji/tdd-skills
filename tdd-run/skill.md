@@ -74,10 +74,13 @@ If problem.md is missing: define the problem first with `/tdd-problem`.
 Do not load the entire dictionary. Search on demand:
 
 ```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <concept-name> <plans_dir>
+# Overview scan (one-line per entry — saves tokens; multiple keywords allowed)
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s <keyword> [<keyword2> ...] <plans_dir>
+# Full entry + related entries
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -d1 <concept-name> <plans_dir>
 ```
 
-Returns the matching entry and its relations (depth 1). Entries under `plans/` take priority over `docs/`.
+`-s` returns one-line summaries. `-d1` also expands related entries. Entries under `plans/` take priority over `docs/`.
 
 **If `plans/<project>/dictionary.json` does not exist (new problem):**
 Call `/tdd-vocab plan` before building the tree.
@@ -165,7 +168,7 @@ If they don't match, consider whether problem.md or the user stories contains an
 Search with `dict-search.js` to see if existing concepts suffice:
 
 ```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <keyword> <plans_dir>
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s <keyword> [<keyword2> ...] <plans_dir>
 ```
 
 If existing vocabulary suffices, do not create a new name.
@@ -393,7 +396,7 @@ If not, give it a new name and write it to `plans/<project>/dictionary.json`.
 Concepts the user can use to talk about the domain — root nodes and intermediate nodes that feel grounded in domain reality are targets.
 Implementation-detail subdivisions (specific algorithms, temporary helpers) are not registered.
 
-When registering something new, search existing concepts with `dict-search.js` first.
+When registering something new, search existing concepts with `dict-search.js -s` first.
 
 **Types and function signatures:**
 Attaching types to arguments and return values is the default posture. Types arise both from function relationships and vocabulary relationships.
