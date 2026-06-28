@@ -41,7 +41,7 @@ cat <plans_dir>/observations.md 2>/dev/null
 辞書は全量ロードせず、成果物レビュー中に必要な概念を検索する:
 
 ```bash
-node <meta>/.claude/tdd/dict-search.js <概念名> <plans_dir>
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <概念名> <plans_dir>
 ```
 
 該当エントリとその関連エントリ（深さ1）が返る。plans/ 側のエントリが docs/ 側より優先される。

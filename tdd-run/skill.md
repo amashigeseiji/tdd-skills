@@ -74,7 +74,7 @@ If problem.md is missing: define the problem first with `/tdd-problem`.
 Do not load the entire dictionary. Search on demand:
 
 ```bash
-node <meta>/.claude/tdd/dict-search.js <concept-name> <plans_dir>
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <concept-name> <plans_dir>
 ```
 
 Returns the matching entry and its relations (depth 1). Entries under `plans/` take priority over `docs/`.
@@ -165,7 +165,7 @@ If they don't match, consider whether problem.md or the user stories contains an
 Search with `dict-search.js` to see if existing concepts suffice:
 
 ```bash
-node <meta>/.claude/tdd/dict-search.js <keyword> <plans_dir>
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" <keyword> <plans_dir>
 ```
 
 If existing vocabulary suffices, do not create a new name.
