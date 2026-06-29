@@ -135,9 +135,17 @@ function formatEntry(entry, summary = false) {
   return lines.join('\n');
 }
 
+function applyFilters(entries, filters) {
+  if (filters.length === 0) return entries;
+  return entries.filter(e =>
+    filters.every(({ field, value }) => String(e[field] ?? '') === value)
+  );
+}
+
 function main() {
   const args = process.argv.slice(2);
   const queries = [];
+  const filters = [];
   let plansDir;
   let summary = false;
   let depth = 0;
@@ -153,6 +161,11 @@ function main() {
       depth = parseInt(args[++i], 10) || 0;
     } else if (/^-d(\d+)$/.test(arg)) {
       depth = parseInt(arg.slice(2), 10) || 0;
+    } else if (arg === '--filter' || arg === '-f') {
+      const expr = args[++i];
+      const eq = expr.indexOf('=');
+      if (eq === -1) { console.error(`Invalid filter: ${expr}`); process.exit(1); }
+      filters.push({ field: expr.slice(0, eq), value: expr.slice(eq + 1) });
     } else if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
       plansDir = arg;
     } else {
@@ -160,8 +173,8 @@ function main() {
     }
   }
 
-  if (queries.length === 0) {
-    console.error('Usage: dict-search.js [-s] [-n] [-d <depth>] <query> [<query2> ...] [<plans_dir>]');
+  if (queries.length === 0 && filters.length === 0) {
+    console.error('Usage: dict-search.js [-s] [-n] [-d <depth>] [-f field=value] <query> [<query2> ...] [<plans_dir>]');
     process.exit(1);
   }
 
@@ -180,14 +193,24 @@ function main() {
   const contextMatches = [];
   const matches = [];
 
-  for (const query of queries) {
-    for (const c of searchContexts(allContexts, query, nameOnly)) {
-      if (!seenContextDirs.has(c.dir)) {
-        seenContextDirs.add(c.dir);
-        contextMatches.push(c);
+  if (queries.length > 0) {
+    for (const query of queries) {
+      for (const c of searchContexts(allContexts, query, nameOnly)) {
+        if (!seenContextDirs.has(c.dir)) {
+          seenContextDirs.add(c.dir);
+          contextMatches.push(c);
+        }
+      }
+      for (const e of applyFilters(search(allEntries, query, nameOnly), filters)) {
+        if (!seenEntryKeys.has(key(e))) {
+          seenEntryKeys.add(key(e));
+          matches.push(e);
+        }
       }
     }
-    for (const e of search(allEntries, query, nameOnly)) {
+  } else {
+    // --filter only: apply to all entries (no text search)
+    for (const e of applyFilters(allEntries, filters)) {
       if (!seenEntryKeys.has(key(e))) {
         seenEntryKeys.add(key(e));
         matches.push(e);
@@ -196,15 +219,20 @@ function main() {
   }
 
   if (contextMatches.length === 0 && matches.length === 0) {
-    const label = queries.map(q => `「${q}」`).join(' ');
+    const queryLabel = queries.map(q => `「${q}」`).join(' ');
+    const filterLabel = filters.map(f => `${f.field}=${f.value}`).join(', ');
+    const label = [queryLabel, filterLabel].filter(Boolean).join(', ');
     console.log(`(${label}に一致するエントリなし)`);
     return;
   }
 
   const relatedEntries = expandRelations(matches, allEntries, depth, seenEntryKeys);
 
-  const queryLabel = queries.map(q => `"${q}"`).join(' ');
-  console.log(`## 検索結果: ${queryLabel}\n`);
+  const resultLabel = [
+    queries.map(q => `"${q}"`).join(' '),
+    filters.map(f => `${f.field}=${f.value}`).join(', '),
+  ].filter(Boolean).join(', ');
+  console.log(`## 検索結果: ${resultLabel}\n`);
   if (contextMatches.length > 0) {
     console.log(`### コンテキスト (${contextMatches.length}件)\n`);
     for (const c of contextMatches) {

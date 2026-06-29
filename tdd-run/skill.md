@@ -244,6 +244,37 @@ If non-loadable nodes exist, decide between these 2 options before proceeding:
 
 "Copy logic into the test file to verify" is not an option.
 
+**Pattern matching (パターン照合):**
+
+Observe the shape of the finalized tree and check whether any structural pattern applies.
+
+First, look up existing pattern entries in the dictionary:
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=pattern <plans_dir>
+```
+
+For each entry with a `heuristic` field, check whether the test tree matches it.
+
+If no pattern entries exist in the dictionary yet, use these built-in heuristics as fallback:
+- 複数の状態ノードがあり条件によって遷移している → StateMachine 候補
+- ノードが一方向に連なり前の出力が次の入力になっている → Pipeline 候補
+- 一つのイベントに複数のノードが反応している → Observer 候補
+
+After checking known patterns, also consider whether the tree suggests a pattern not yet in the dictionary. Both AI and human can propose candidates at this point.
+
+For each candidate (known or novel):
+1. Restructure the tree draft using the pattern's vocabulary
+2. Present the original and restructured trees side by side
+3. Ask the user: does the restructured tree have better clarity?
+4. If adopted, register in `plans/<project>/dictionary.json`:
+   ```json
+   {"name":"<パターン名>","en":"PatternName","context":null,"domain":"pattern","definition":"...","heuristic":"...","wip":{"status":"new","discovered":"tdd-run"}}
+   ```
+   For novel patterns, also add `components` with role descriptions.
+
+If no pattern fits, proceed as-is.
+
 **After decomposition, present the tree to the user and get confirmation before proceeding.**
 
 Once confirmed, first generate `plans/<project>/test-tree.md`.
