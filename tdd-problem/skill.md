@@ -66,6 +66,8 @@ find <meta>/plans -name "problem.md" -type f -not -path "<meta>/plans/archives/*
 - CLAUDE.md / README.md
 
 **`docs/dictionary.json` が存在する場合、アプリケーションドメインの語彙を確認する。**
+辞書の検索には `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js"` を使う（`-s` でサマリー、`-d1` で関連展開、複数キーワードを並べると OR 検索、詳細は `--help`）。
+
 問題を既存のアプリケーションドメイン語彙で語れるかを試みる:
 - 語れる概念: 問題の記述にそのまま使う（ソリューションドメインの語彙は問題記述に持ち込まない）
 - 語れない概念: メモしておく（/tdd-run への申し送りで「語彙定義の種」として渡す）
