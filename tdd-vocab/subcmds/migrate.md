@@ -10,9 +10,10 @@
 **1. 対象ファイルを確認する**
 
 ```bash
-find "<meta>/docs" "<meta>/plans" -name "dictionary.md" 2>/dev/null
+find "<meta>/docs" "<meta>/plans" -name "dictionary.md" -not -path "*/archives/*" 2>/dev/null
 ```
 
+`archives/` 配下のファイルは移行対象外（無視する）。
 ファイルが見つからなければ「移行対象なし」と伝えて終了する。
 
 **2. 各ファイルを変換する**
