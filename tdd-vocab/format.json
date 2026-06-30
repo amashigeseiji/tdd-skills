@@ -1,0 +1,60 @@
+{
+  "_note": "辞書エントリを書くときのテンプレート。サブコマンドが必要時に Read する。",
+
+  "context": {
+    "dir": "<英語 kebab-case 名（テストディレクトリ名に使用）>",
+    "name": "<コンテキスト名>",
+    "description": "<このコンテキストが扱う関心領域の一文説明>",
+    "primary_users": "<主なユーザー>",
+    "in_scope": "<境界の内>",
+    "out_of_scope": "<境界の外>"
+  },
+
+  "entry": {
+    "name": "<概念名（日本語）>",
+    "en": "<EnglishName（概念名の直訳を PascalCase で。例: テンプレートマッチャー → TemplateMatcher）>",
+    "context": "<context.dir>",
+    "domain": "application | solution | pattern",
+    "definition": "<何であるか。他の辞書概念は #概念名 記法で参照する（#で始まり半角スペースで終わる。文末・句点の前も #概念名 。のようにスペースを挟む）>",
+    "relations": [
+      {
+        "_type_options": "contains（このエントリがライフサイクルを統括する下位概念）| belongs_to（このエントリを統括する上位概念）| references（ライフサイクルが別で横断的に参照する概念）",
+        "type": "contains | belongs_to | references",
+        "target": "<概念名>",
+        "note": "<補足>"
+      }
+    ],
+    "src": "src/<dir>/<file>.js",
+    "_cross_context_relation": {
+      "type": "references",
+      "target": "<概念名>",
+      "context": "<参照先のcontext.dir>",
+      "note": "<補足>"
+    }
+  },
+
+  "pattern_entry": {
+    "name": "<パターン名>",
+    "en": "<PatternName>",
+    "context": null,
+    "domain": "pattern",
+    "definition": "<パターンの説明>",
+    "heuristic": "<tdd-run がテストツリーと照合する手がかり。必須>",
+    "components": [
+      { "name": "<構成要素名>", "role": "<役割>" }
+    ]
+  },
+
+  "wip_fields": {
+    "new": {
+      "status": "new",
+      "discovered": "tdd-run | tdd-feedback | tdd-vocab plan | その他"
+    },
+    "redefine": {
+      "status": "redefine",
+      "previous_definition": "<現在の定義>",
+      "reason": "<変更理由>",
+      "impact": "<影響範囲>"
+    }
+  }
+}

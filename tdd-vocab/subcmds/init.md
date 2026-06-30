@@ -75,4 +75,4 @@ ls packages/ 2>/dev/null || true
 
 `init` は既存システムの知識を定義するため、`plans/` 経由ではなく `docs/dictionary.json` に直接書く。
 
-エントリのフォーマットは skill.md の「語彙エントリのフォーマット」を参照する。
+エントリを書く前に `${CLAUDE_SKILL_DIR}/format.json` を Read してフォーマットを確認する。
