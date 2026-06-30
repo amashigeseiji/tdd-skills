@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-// Usage: dict-search.js <query> [<plans_dir>]
-// Searches docs/dictionary.json and optionally plans/<project>/dictionary.json.
-// Returns matching entries and their related entries (depth 1).
+//
+// Usage:
+//   dict-search.js [options] <query> [<query2> ...] [<plans_dir>]
+//   dict-search.js [options] -f field=value
+//
+// 語彙辞書（dictionary.json）をキーワード検索するスクリプト。
+// 詳細は --help を参照。
 
 import fs from 'fs';
 import path from 'path';
@@ -150,6 +154,41 @@ function main() {
   let summary = false;
   let depth = 0;
   let nameOnly = false;
+
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(`Usage:
+  dict-search.js [options] <query> [<query2> ...] [<plans_dir>]
+  dict-search.js [options] -f field=value
+
+Options:
+  -s, --summary        一覧表示（定義・関係を省いた1行形式）
+  -n, --name-only      name / en フィールドのみ検索（definition を除外）
+  -d, --depth <n>      関連エントリを n 段まで展開（デフォルト 0）
+                       例: -d1  -d 2  --depth 3
+  -f, --filter f=v     フィールドで絞り込み（複数 -f 可、AND 条件）
+                       例: -f context=core  -f domain=testing
+  -h, --help           このヘルプを表示
+
+Arguments:
+  <query>              検索語（複数指定可）。name / en / definition を部分一致
+  <plans_dir>          / ~ ./ ../ で始まるパスをプロジェクト辞書ディレクトリと判定
+                       <plans_dir>/dictionary.json を追加でロードし、同名エントリを上書き
+
+辞書ファイルの探索:
+  カレントディレクトリから上へ .claude/tdd/config.json を探し、
+  meta_repo キーが指すディレクトリの docs/dictionary.json を使う。
+  見つからなければカレントディレクトリの docs/dictionary.json を使う。
+
+Examples:
+  dict-search.js テスト
+  dict-search.js -s テスト                  # 一覧形式
+  dict-search.js -n テスト                  # name/en のみ検索
+  dict-search.js -d1 テスト                 # 関連エントリを1段展開
+  dict-search.js -f context=core            # フィルタのみ（全件）
+  dict-search.js -f context=core テスト     # フィルタ + キーワード
+  dict-search.js テスト ./plans/myproject   # プロジェクト辞書を追加`);
+    process.exit(0);
+  }
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
