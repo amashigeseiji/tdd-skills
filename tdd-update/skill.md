@@ -13,10 +13,38 @@ tdd-skills リポジトリを `git pull` し、新規スキルのシンボリッ
 ## 実行
 
 ```bash
+SKILLS_REPO="$(realpath "${CLAUDE_SKILL_DIR}/..")"
+BEFORE=$(git -C "$SKILLS_REPO" rev-parse HEAD)
 bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/update.sh"
+AFTER=$(git -C "$SKILLS_REPO" rev-parse HEAD)
+echo "BEFORE=$BEFORE"
+echo "AFTER=$AFTER"
 ```
 
 出力をそのままユーザーに表示する。
+
+## 更新差分の報告
+
+`BEFORE` と `AFTER` が異なる場合（実際に更新があった場合）、以下を実行して差分情報を収集する:
+
+```bash
+SKILLS_REPO="$(realpath "${CLAUDE_SKILL_DIR}/..")"
+git -C "$SKILLS_REPO" log --oneline "$BEFORE..$AFTER"
+```
+
+```bash
+SKILLS_REPO="$(realpath "${CLAUDE_SKILL_DIR}/..")"
+cat "$SKILLS_REPO/CHANGELOG.md"
+```
+
+収集した情報をもとに、以下の観点で**変更内容を整理してユーザーに報告**する:
+
+- **新しいスキル・削除されたスキル** — 使えるようになった／なくなったもの
+- **既存スキルの動作変更** — 手順・出力・フラグが変わったもの（ユーザーが意識すべき変化）
+- **内部改善・修正** — ユーザーが直接気づかないが品質に影響するもの
+- **マイグレーションが必要な変更** — ユーザー側で対応が必要な場合は必ず明示
+
+差分がない場合（`BEFORE == AFTER`）は「すでに最新です」と伝えるだけでよい。
 
 ## 完了後
 
