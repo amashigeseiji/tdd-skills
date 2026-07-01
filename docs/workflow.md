@@ -9,7 +9,7 @@
 
 （例: メタレポ/サブレポ構成）
 
-- メタレポ (`<meta>`): `plans/` と `docs/` を管理する。`config.json` の `meta_repo` に記録されている。
+- メタレポ (`<meta>`): `plans/` と `docs/` を管理する。`.claude/tdd/config.json` があるディレクトリ。
 - サブレポ (`<work_repo_abs>`): 実装コードを管理する。`problem.md` の `**作業ディレクトリ:**` に記録されている。
 
 単一レポ構成の場合は `<meta>` == `<work_repo_abs>`。

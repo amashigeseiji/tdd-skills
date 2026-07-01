@@ -24,15 +24,16 @@
 mkdir -p .claude/tdd
 ```
 
-`.claude/tdd/config.json` を作成する。`meta_repo` には現在のディレクトリの絶対パスを記録する:
+`.claude/tdd/config.json` を作成する。このファイルの存在自体が「ここがメタレポルート」の目印なので、
+内容は空でよい:
 
 ```json
-{
-  "meta_repo": "/absolute/path/to/meta-repo"
-}
+{}
 ```
 
-`meta_repo` の値は `pwd` で取得した絶対パスをそのまま書く。
+（`commit_plans` や `branch_name_template` などのプロジェクト固有設定は、それを使う側が
+必要になったタイミングで追記する。ここでは絶対パスを書かない — 書くと clone/移動時に
+実際の場所と食い違い、コミットもできなくなる。）
 
 **plans/ の追跡設定:**
 
@@ -60,6 +61,6 @@ echo 'plans/' >> .gitignore
 
 ## 成果物
 
-- `.claude/tdd/config.json` — メタレポルートの絶対パス（`meta_repo`）
+- `.claude/tdd/config.json` — メタレポルートを示すマーカー（内容は空でよい）
 - `.claude/tdd/scaffold.sh` — スタブ生成スクリプト（tdd-scaffold が作成）
 - `docs/dictionary.json` — 初期語彙定義（tdd-vocab init が作成）

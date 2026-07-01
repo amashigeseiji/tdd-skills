@@ -28,7 +28,7 @@ tdd-run が完了したら必ず起動する。**別セッションで動かす*
 bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
-- `<meta>` = config.json の `meta_repo`
+- `<meta>` = 出力されたディレクトリ
 - `<work_repo_abs>` = problem.md の `**作業ディレクトリ:**`（なければ `<meta>`）
 - `<plans_dir>` = `<meta>` != `<work_repo_abs>` なら `<meta>/plans/<project>`、同じなら `<work_repo_abs>/plans/<project>`
 

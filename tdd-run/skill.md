@@ -16,15 +16,15 @@ When the root node turns green, the problem is solved.
 
 Do this first, before reading any files. `<project>` is a directory name under `plans/`.
 
-### Load config.json and determine the meta-repo root
+### Determine the meta-repo root
 
-Search upward from CWD for `.claude/tdd/config.json` and retrieve `meta_repo`:
+Search upward from CWD for `.claude/tdd/config.json`:
 
 ```bash
 bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
-Set the `meta_repo` field of the found config.json as `<meta>`.
+Set the directory it printed as `<meta>`.
 If not found, run `/tdd-init` first, then return.
 
 ### Identify the working repository
@@ -472,7 +472,7 @@ First create a correspondence table:
 記事                      | -                 | -                        | Article（型定義あり）
 ```
 
-5 points to verify:
+6 points to verify:
 
 - **Vocabulary → test**: Does the name registered in the vocabulary appear in `describe()`?
   Names that disappeared were "quietly resolved" — record in findings.
@@ -485,6 +485,13 @@ First create a correspondence table:
   If not, define it there. If there was a type stub from step 4, fill in fields confirmed by implementation.
 - **Vocabulary → src**: Write the confirmed implementation path into the `"src"` field of each vocabulary entry.
   Also verify it matches the file placement decided during the module boundary check in step 4.
+- **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for `depgraph.regen`.
+  If absent, skip this point and note in findings that the check was skipped (mention `/tdd-scaffold depgraph` as an opt-in setup).
+  If present:
+  1. Regenerate the graph: `<depgraph.regen>` (writes `<depgraph.graph>`)
+  2. For the file(s) just implemented, resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see the note above)
+  3. Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>` and check whether any result matches one of the `entry_points` globs
+  4. If none match, the node is isolated from composition — record it in findings as a false-negative risk (see "Test and module design")
 
 ### 8. Integration and behavior verification (make it usable)
 

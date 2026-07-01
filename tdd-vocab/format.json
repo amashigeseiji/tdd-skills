@@ -25,6 +25,7 @@
       }
     ],
     "src": "src/<dir>/<file>.js",
+    "_src_note": "tdd-vocab は書き込まない。tdd-run の7.5（実装確定後）が書く代表1ファイルの簡易キャッシュ。ソリューションドメインかつ実装確定済みのエントリにのみ値が入り、アプリケーションドメインや未実装のエントリでは null のまま。複数ファイルにまたがる正式なリンクは実装側の @vocab アノテーション（多対多、tdd-vocab check で整合性チェックされる）。概念の実装箇所を確実に知りたければ @vocab を grep する",
     "_cross_context_relation": {
       "type": "references",
       "target": "<概念名>",

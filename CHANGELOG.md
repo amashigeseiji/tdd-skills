@@ -1,6 +1,31 @@
 # CHANGELOG
 
+## 2026-07-02
+
+### Fixed
+- **`config.json` の `meta_repo` 廃止** — メタレポルートの絶対パスをファイルに保存していたため、
+  clone/移動先ごとに値が食い違い、コミットもできなかった。`meta_repo` はもともと
+  「config.json が見つかったディレクトリ」と常に同じ値なので、`bin/find-config.sh` が
+  そのディレクトリ自体を返す形に変更し、ファイルへの保存を廃止（`bin/dict-search.js` も同様）。
+  `config.json` は存在自体がメタレポルートの目印となり、内容は空でよい。
+  各 skill.md の `<meta>` 取得手順を「find-config.sh が返したディレクトリ」に統一。
+
 ## 2026-07-01
+
+### Added
+- **依存グラフ検索アダプタの導入**
+  - `bin/depgraph-search.js` を新設。正規化済み依存グラフ JSON を読み、`--to`/`--from`/`-d`/`-s`
+    で問い合わせる共有スクリプト（`dict-search.js` と同じ位置づけで、プロジェクトごとに再生成しない）。
+  - `/tdd-scaffold depgraph` を新設。プロジェクト固有の `.claude/tdd/depgraph-regen.sh`
+    （言語別ツールを実行し、出力を上記の正規化 JSON に変換するだけの薄いスクリプト）と
+    `config.json` の `depgraph.regen`/`depgraph.graph`/`depgraph.entry_points` を生成する
+    （任意機能・未設定でも従来通り動作する）。
+  - `tdd-run` 7.5 に「実装 → 依存グラフ」の孤立ノード検出（6点目）を追加。構成に組み込まれていない
+    実装を偽陰性リスクとして findings に記録する。
+  - `tdd-vocab init` の手順2・5に、依存グラフの fan-in/fan-out を境界推測の傍証として使う手順を追加。
+  - `tdd-vocab check`（`check-vocab.js`）に `src` フィールドの実在チェックと `@vocab` との矛盾検出を追加。
+  - `format.json`/`tdd-vocab/skill.md` に `src` フィールドの所有権（`tdd-run` が書く・`tdd-vocab` は読むだけ）を明記。
+  - 詳細設計は `docs/references/archives/dependency-graph-in-tdd-run.md` を参照（組み込み完了により archives へ移動）。
 
 ### Changed
 - **tdd-vocab plan のトークン削減**
