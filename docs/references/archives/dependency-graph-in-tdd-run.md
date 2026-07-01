@@ -2,6 +2,9 @@
 
 **日付:** 2026-06-30
 **更新:** 2026-07-01 — 依存グラフ検索ツールの先行実装から得た知見を踏まえて残課題を解決し、具体的な組み込み方針を確定した。
+**更新2:** 2026-07-01 — 検索ロジック（`--to`/`--from`/`-d`/`-s`）を `bin/depgraph-search.js` として
+tdd-skills に同梱する共有スクリプトに変更（`dict-search.js` と同じ位置づけ）。プロジェクト側が
+持つのは「ツール実行＋出力の正規化」だけに縮小した。理由は下記「対応方針」を参照。
 
 ## 現状の整理
 
@@ -46,22 +49,28 @@
 
 **フォールバックとして grep は使わない。** Rails・Nuxt などフレームワークが暗黙に依存解決するプロジェクトでは import を正規表現で拾っても偽の結果になる。ツールがなければこのチェックはスキップする。
 
-### プロジェクト側アダプタとして持たせる（`scaffold.sh` と同型）
+### 検索ロジックは共有・生成コマンドだけプロジェクト固有
 
-言語ごとの分岐ロジックを tdd-skills 側に持たない。`tdd-scaffold` が `.claude/tdd/scaffold.sh` を
-「呼び出し規約は固定・中身はプロジェクト調査して生成」で作る前例と同じパターンを使う。
+最初は `scaffold.sh` と同じ「呼び出し規約は固定・中身はプロジェクト調査して生成」の全体を
+プロジェクト側アダプタに持たせる案だったが、これは過剰だった。`--to`/`--from`/`-d`/`-s` の
+展開・整形ロジック（幅優先探索など）は一度正規化 JSON が手に入ればプロジェクト・言語に
+依存しない。ここを毎回 LLM に再生成させると、`dict-search.js` が1つの実装をずっと使い回している
+のと非対称になり、バグ修正が N プロジェクト分必要になる。`scaffold.sh` の生成ロジックが
+個別化を要するのは中身（Rails の scaffold と JS のテンプレートは別物）が本質的に違うからで、
+depgraph の検索ロジックにはその正当化が当てはまらない。
 
-`/tdd-scaffold depgraph` サブコマンドを新設し、`.claude/tdd/depgraph-search.sh` を生成する：
+そこで役割を分割する：
+
+- **`bin/depgraph-search.js`（tdd-skills 同梱・共有・再生成しない）**: 正規化済み JSON
+  （`{ "modules": [ { "source", "dependencies": [...] } ] }`、forward edge のみ）を読み、
+  `--to`/`--from`/`-d`/`-s` を提供する。dependents（依存元）は起動時に forward edge から逆引き計算する
+- **`.claude/tdd/depgraph-regen.sh`（プロジェクト固有・`/tdd-scaffold depgraph` が生成）**:
+  言語別ツールを実行し、その生の出力を上記の正規化 JSON に変換して書き出すだけ。検索・展開は持たない
 
 ```
-.claude/tdd/depgraph-search.sh --regen
-.claude/tdd/depgraph-search.sh [--to] [--from] [-d <depth>] [-s] <path-substring>
+.claude/tdd/depgraph-regen.sh
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" [--to] [--from] [-d <depth>] [-s] <graph-json> <path-substring>
 ```
-
-- `--regen`: 依存グラフを再生成する（実装のツール呼び出しはプロジェクトごとに異なる）
-- `--to`/`--from`/`-d`/`-s`: 起点ファイルから n hop 先までの依存先/依存元を展開・要約する共通の意味を持たせる
-- プロジェクト固有の付加機能（例: 「ページ→利用APIの一覧」のような用途特化のモード）は持たせない。
-  tdd-skills が要求するのはこの最小 CLI 契約のみ
 
 `.claude/tdd/config.json` に登録する:
 
@@ -69,7 +78,8 @@
 {
   "meta_repo": "...",
   "depgraph": {
-    "search": ".claude/tdd/depgraph-search.sh",
+    "regen": ".claude/tdd/depgraph-regen.sh",
+    "graph": ".claude/tdd/dependency-graph.json",
     "entry_points": ["app/pages/**", "server/api/**"]
   }
 }
@@ -85,13 +95,13 @@
 
 **1. tdd-run 7.5（ウォークスルー）**
 
-概念 → 実装ファイルの解決は `@vocab` を正とする（`src` フィールドは代表1ファイルの簡易キャッシュに過ぎず、
-`tdd-vocab` 自身は書き込まない・整合性チェックもされないため信頼できる正とはしない。詳細は
-`tdd-skills-proposal.md` の `entry.src` 議論を参照）。
+概念 → 実装ファイルの解決は `@vocab` を正とする。`src` フィールドは代表1ファイルの簡易キャッシュに過ぎず、
+`tdd-vocab` 自身は書き込まない・整合性チェックもされない（詳細は `tdd-vocab/format.json` の
+`_src_note` および `tdd-vocab/skill.md` の「`src` フィールドの所有権」を参照）。
 
-1. `config.json` に `depgraph.search` があるか確認
-2. あれば `--regen` で最新化してから、確認対象の実装ファイル（`@vocab` から解決）について
-   `depgraph-search.sh --from -d 999 -s <file>` を実行
+1. `config.json` に `depgraph.regen` があるか確認
+2. あれば `<depgraph.regen>` で最新化してから、確認対象の実装ファイル（`@vocab` から解決）について
+   `bin/depgraph-search.js --from -d 999 -s <depgraph.graph> <file>` を実行
 3. 結果が `entry_points` のいずれのパターンにも一致しなければ、孤立ノード（構成に組み込まれていない
    = 偽陰性リスク）として findings に記録し、ユーザーに報告する
 4. なければスキップし、「依存グラフ未設定のため孤立ノードチェックは省略。必要なら `/tdd-scaffold depgraph`」と一言添える
@@ -102,28 +112,28 @@
 構造だけでドメイン境界を決めない（util の相互依存など、ドメインと無関係な依存も多いため）。
 
 - 手順2（コンテキスト候補）: 迷うディレクトリ境界がある場合、fan-in/fan-out の集中度を参考情報として提示できる
-- 手順5（コンテキスト間の関係）: 「同じ言葉が複数コンテキストに現れる」ケースで、`depgraph-search.sh --from`
+- 手順5（コンテキスト間の関係）: 「同じ言葉が複数コンテキストに現れる」ケースで、`bin/depgraph-search.js --from`
   によりどのコンテキストから参照されているかを裏付けに使える
 
-いずれも `depgraph.search` が未設定なら何もしない（`init` 自体は依存グラフなしで従来通り機能する）。
+いずれも `depgraph.regen` が未設定なら何もしない（`init` 自体は依存グラフなしで従来通り機能する）。
 
 **3. dict-search との連携**
 
 概念名から実装への経路は `dict-search.js`（概念名 → エントリ）→ `grep '@vocab: <概念名>'`（エントリ →
-実ファイル、複数ヒットしうる）→ `depgraph-search.sh`（ファイル → 依存関係・到達可能性）の3段。
+実ファイル、複数ヒットしうる）→ `bin/depgraph-search.js`（ファイル → 依存関係・到達可能性）の3段。
 `src` フィールドを経由しない。これにより `src` が古くても連携が壊れない。
 
 ### 三つのグラフが揃う状態
 
 - 辞書グラフ（`relations`）
 - テストツリー（`test-tree.md`）
-- 実装依存グラフ（ツール生成、`depgraph-search.sh` 経由）
+- 実装依存グラフ（ツール生成、`bin/depgraph-search.js` 経由）
 
 この三つが揃って初めて 7.5 で「語彙・テスト・実装」の対応をグラフとして検証できる。
 
 ## 残課題
 
-- ~~対応する言語・ツールの一覧をどこに管理するか~~ → プロジェクト側アダプタ（`depgraph-search.sh`）に閉じ込めることで解消
+- ~~対応する言語・ツールの一覧をどこに管理するか~~ → プロジェクト側の `depgraph-regen.sh`（正規化のみ）に閉じ込めることで解消
 - ~~ツール検出の手順をスキルに書く粒度~~ → `/tdd-scaffold depgraph` に切り出し
 - ~~エントリーポイントの定義を明示化~~ → `config.json` の `entry_points` として人間が明示
 - Python/Ruby 等、JS/TS 以外でこの CLI 契約が実際に無理なく実装できるか（現状 JS/TS でしか検証していない）

@@ -4,9 +4,12 @@
 
 ### Added
 - **依存グラフ検索アダプタの導入**
-  - `/tdd-scaffold depgraph` を新設。プロジェクト固有の `.claude/tdd/depgraph-search.sh`
-    （`--to`/`--from`/`-d`/`-s`/`--regen` の固定 CLI 契約）と `config.json` の
-    `depgraph.search`/`depgraph.entry_points` を生成する（任意機能・未設定でも従来通り動作する）。
+  - `bin/depgraph-search.js` を新設。正規化済み依存グラフ JSON を読み、`--to`/`--from`/`-d`/`-s`
+    で問い合わせる共有スクリプト（`dict-search.js` と同じ位置づけで、プロジェクトごとに再生成しない）。
+  - `/tdd-scaffold depgraph` を新設。プロジェクト固有の `.claude/tdd/depgraph-regen.sh`
+    （言語別ツールを実行し、出力を上記の正規化 JSON に変換するだけの薄いスクリプト）と
+    `config.json` の `depgraph.regen`/`depgraph.graph`/`depgraph.entry_points` を生成する
+    （任意機能・未設定でも従来通り動作する）。
   - `tdd-run` 7.5 に「実装 → 依存グラフ」の孤立ノード検出（6点目）を追加。構成に組み込まれていない
     実装を偽陰性リスクとして findings に記録する。
   - `tdd-vocab init` の手順2・5に、依存グラフの fan-in/fan-out を境界推測の傍証として使う手順を追加。

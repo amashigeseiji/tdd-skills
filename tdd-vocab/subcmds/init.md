@@ -35,11 +35,11 @@ ls packages/ 2>/dev/null || true
 どのコンテキストにも属さない物理的事実であり、ドメイン概念ではない。
 各コンテキストがインフラを自分の文脈でモデル化したものが、そのコンテキストの語彙になる。
 
-`.claude/tdd/config.json` に `depgraph.search` が設定されていれば、ディレクトリ境界だけでは
+`.claude/tdd/config.json` に `depgraph.regen` が設定されていれば、ディレクトリ境界だけでは
 判断がつかない場合の補助情報として fan-in/fan-out（依存元・依存先の数）を参考にできる
-（`depgraph-search.sh -s <path>`）。ただし依存構造とドメイン境界は一致しないことも多い
-（util の相互依存など）ので、あくまで人間に提示する傍証の一つに留め、決定はユーザーとの対話でする。
-未設定なら何もしない。
+（`<depgraph.regen>` 実行後、`node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" -s <depgraph.graph> <path>`）。
+ただし依存構造とドメイン境界は一致しないことも多い（util の相互依存など）ので、あくまで
+人間に提示する傍証の一つに留め、決定はユーザーとの対話でする。未設定なら何もしない。
 
 **3. 候補をユーザーに提示し確定する**
 
@@ -75,7 +75,8 @@ ls packages/ 2>/dev/null || true
 - 同じインフラを別々にモデル化しているのか（それぞれ独自の概念として定義する）
 - 一方が他方のデータを使う上流/下流の関係にあるのか（関係フィールドに明記する）
 
-`depgraph.search` が設定されていれば、共有ファイルの依存元を `depgraph-search.sh --from -d<N> <path>`
+`depgraph.regen` が設定されていれば、共有ファイルの依存元を
+`node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d<N> <depgraph.graph> <path>`
 で調べ、どのコンテキストのディレクトリから参照されているかを裏付けに使える。未設定なら何もしない。
 
 **6. docs/dictionary.json に書く**
