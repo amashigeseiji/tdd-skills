@@ -2,6 +2,18 @@
 
 ## 2026-07-01
 
+### Added
+- **依存グラフ検索アダプタの導入**
+  - `/tdd-scaffold depgraph` を新設。プロジェクト固有の `.claude/tdd/depgraph-search.sh`
+    （`--to`/`--from`/`-d`/`-s`/`--regen` の固定 CLI 契約）と `config.json` の
+    `depgraph.search`/`depgraph.entry_points` を生成する（任意機能・未設定でも従来通り動作する）。
+  - `tdd-run` 7.5 に「実装 → 依存グラフ」の孤立ノード検出（6点目）を追加。構成に組み込まれていない
+    実装を偽陰性リスクとして findings に記録する。
+  - `tdd-vocab init` の手順2・5に、依存グラフの fan-in/fan-out を境界推測の傍証として使う手順を追加。
+  - `tdd-vocab check`（`check-vocab.js`）に `src` フィールドの実在チェックと `@vocab` との矛盾検出を追加。
+  - `format.json`/`tdd-vocab/skill.md` に `src` フィールドの所有権（`tdd-run` が書く・`tdd-vocab` は読むだけ）を明記。
+  - 詳細設計は `docs/references/archives/dependency-graph-in-tdd-run.md` を参照（組み込み完了により archives へ移動）。
+
 ### Changed
 - **tdd-vocab plan のトークン削減**
   - `problem.md` フォーマットに `**コンテキスト:**` フィールドを追加。ヒアリング中にスコープの

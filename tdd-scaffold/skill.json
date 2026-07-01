@@ -1,6 +1,7 @@
 {
   "name": "tdd-scaffold",
-  "description": "プロジェクト固有の .claude/tdd/scaffold.sh を生成する初期化スキル。tdd-run が手順4のスタブ生成で呼び出すスクリプトを、プロジェクトの言語・フレームワーク・ディレクトリ規約に合わせて作成する",
-  "version": "1.0.0",
-  "type": "managed"
+  "description": "プロジェクト固有の .claude/tdd/scaffold.sh を生成する初期化スキル。tdd-run が手順4のスタブ生成で呼び出すスクリプトを、プロジェクトの言語・フレームワーク・ディレクトリ規約に合わせて作成する。`depgraph` 引数で依存グラフ検索アダプタも生成できる",
+  "version": "1.1.0",
+  "type": "managed",
+  "argument-hint": "[depgraph]"
 }

@@ -11,6 +11,8 @@
  *   - @test の参照先ファイルが存在するか
  *   - stable エントリに対応する @vocab を持つ実装が存在するか（逆引き）
  *   - テストディレクトリ名が辞書コンテキストの dir フィールドと対応しているか
+ *   - エントリの src が指すファイルが実在するか
+ *   - src が指すファイルに、対応する @vocab がついているか（src と @vocab の矛盾検出）
  */
 
 const fs = require('fs');
@@ -24,7 +26,7 @@ const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
 // ---- パーサー ---------------------------------------------------------------
 
 function parseDictionary(filePath) {
-  if (!fs.existsSync(filePath)) return { contexts: [], concepts: [], conceptsByContext: [] };
+  if (!fs.existsSync(filePath)) return { contexts: [], concepts: [], conceptsByContext: [], entriesWithSrc: [] };
   let dict;
   try {
     dict = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
@@ -34,7 +36,10 @@ function parseDictionary(filePath) {
   const contexts = (dict.contexts || []).map(c => ({ name: c.name, dir: c.dir }));
   const concepts = (dict.entries || []).map(e => e.name);
   const conceptsByContext = (dict.entries || []).map(e => `${e.context}::${e.name}`);
-  return { contexts, concepts, conceptsByContext };
+  const entriesWithSrc = (dict.entries || [])
+    .filter(e => e.src)
+    .map(e => ({ name: e.name, context: e.context, src: e.src }));
+  return { contexts, concepts, conceptsByContext, entriesWithSrc };
 }
 
 function scanImplementations(dir) {
@@ -91,6 +96,7 @@ const stableDict = parseDictionary(path.join(root, 'docs/dictionary.json'));
 const wipContexts = [];
 const wipConcepts = [];
 const wipConceptsByContext = [];
+const wipEntriesWithSrc = [];
 
 const plansDir = path.join(root, 'plans');
 if (fs.existsSync(plansDir)) {
@@ -100,8 +106,11 @@ if (fs.existsSync(plansDir)) {
     wipContexts.push(...wip.contexts);
     wipConcepts.push(...wip.concepts);
     wipConceptsByContext.push(...wip.conceptsByContext);
+    wipEntriesWithSrc.push(...wip.entriesWithSrc);
   }
 }
+
+const allEntriesWithSrc = [...stableDict.entriesWithSrc, ...wipEntriesWithSrc];
 
 const allConcepts = new Set([...stableDict.concepts, ...wipConcepts]);
 const allConceptsByContext = new Set([...stableDict.conceptsByContext, ...wipConceptsByContext]);
@@ -146,6 +155,29 @@ const implementedConcepts = new Set(impls.flatMap(i => i.vocabs.map(v => v.name)
 for (const concept of stableConcepts) {
   if (!implementedConcepts.has(concept)) {
     warnings.push(`[未実装] stable 概念 "${concept}" を参照する @vocab がない`);
+  }
+}
+
+// src の実在確認・@vocab との矛盾検出（impls は既に scanImplementations() で取得済みのものを再利用）
+const vocabFilesByConcept = new Map(); // "name" または "context::name" -> Set<relPath>
+for (const { file, vocabs } of impls) {
+  const rel = path.relative(root, file);
+  for (const { name, context } of vocabs) {
+    const key = context ? `${context}::${name}` : name;
+    if (!vocabFilesByConcept.has(key)) vocabFilesByConcept.set(key, new Set());
+    vocabFilesByConcept.get(key).add(rel);
+  }
+}
+
+for (const { name, context, src } of allEntriesWithSrc) {
+  if (!fs.existsSync(path.join(root, src))) {
+    warnings.push(`[src不在] "${name}" の src "${src}" が存在しない`);
+    continue;
+  }
+  const key = context ? `${context}::${name}` : name;
+  const vocabFiles = vocabFilesByConcept.get(key) || vocabFilesByConcept.get(name);
+  if (vocabFiles && !vocabFiles.has(src)) {
+    warnings.push(`[src不一致] "${name}" の src "${src}" に @vocab がない（@vocab があるのは: ${[...vocabFiles].join(', ')}）`);
   }
 }
 
