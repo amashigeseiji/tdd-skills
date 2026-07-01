@@ -13,11 +13,7 @@ import path from 'path';
 function findMetaRepo() {
   let d = process.cwd();
   while (d !== '/') {
-    const configPath = path.join(d, '.claude/tdd/config.json');
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      return config.meta_repo || d;
-    }
+    if (fs.existsSync(path.join(d, '.claude/tdd/config.json'))) return d;
     d = path.dirname(d);
   }
   return process.cwd();
@@ -176,7 +172,7 @@ Arguments:
 
 辞書ファイルの探索:
   カレントディレクトリから上へ .claude/tdd/config.json を探し、
-  meta_repo キーが指すディレクトリの docs/dictionary.json を使う。
+  見つかったディレクトリの docs/dictionary.json を使う。
   見つからなければカレントディレクトリの docs/dictionary.json を使う。
 
 Examples:

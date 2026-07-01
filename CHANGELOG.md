@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 2026-07-02
+
+### Fixed
+- **`config.json` の `meta_repo` 廃止** — メタレポルートの絶対パスをファイルに保存していたため、
+  clone/移動先ごとに値が食い違い、コミットもできなかった。`meta_repo` はもともと
+  「config.json が見つかったディレクトリ」と常に同じ値なので、`bin/find-config.sh` が
+  そのディレクトリ自体を返す形に変更し、ファイルへの保存を廃止（`bin/dict-search.js` も同様）。
+  `config.json` は存在自体がメタレポルートの目印となり、内容は空でよい。
+  各 skill.md の `<meta>` 取得手順を「find-config.sh が返したディレクトリ」に統一。
+
 ## 2026-07-01
 
 ### Added

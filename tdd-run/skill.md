@@ -16,15 +16,15 @@ When the root node turns green, the problem is solved.
 
 Do this first, before reading any files. `<project>` is a directory name under `plans/`.
 
-### Load config.json and determine the meta-repo root
+### Determine the meta-repo root
 
-Search upward from CWD for `.claude/tdd/config.json` and retrieve `meta_repo`:
+Search upward from CWD for `.claude/tdd/config.json`:
 
 ```bash
 bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
-Set the `meta_repo` field of the found config.json as `<meta>`.
+Set the directory it printed as `<meta>`.
 If not found, run `/tdd-init` first, then return.
 
 ### Identify the working repository

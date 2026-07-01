@@ -7,7 +7,7 @@
 
 ## 起動時の処理
 
-### 1. config.json の読み込み
+### 1. メタレポルートの特定
 
 CWD から上に向かって `.claude/tdd/config.json` を探す:
 
@@ -16,7 +16,7 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 見つからない場合: `/tdd-init` を実行してから戻る。
-`<meta>` = config.json の `meta_repo`。
+`<meta>` = 出力されたディレクトリ。
 
 ### 2. workflow.md の確認
 
