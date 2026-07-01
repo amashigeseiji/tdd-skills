@@ -161,7 +161,7 @@ for (const concept of stableConcepts) {
 // src の実在確認・@vocab との矛盾検出（impls は既に scanImplementations() で取得済みのものを再利用）
 const vocabFilesByConcept = new Map(); // "name" または "context::name" -> Set<relPath>
 for (const { file, vocabs } of impls) {
-  const rel = path.relative(root, file);
+  const rel = path.normalize(path.relative(root, file));
   for (const { name, context } of vocabs) {
     const key = context ? `${context}::${name}` : name;
     if (!vocabFilesByConcept.has(key)) vocabFilesByConcept.set(key, new Set());
@@ -174,9 +174,10 @@ for (const { name, context, src } of allEntriesWithSrc) {
     warnings.push(`[src不在] "${name}" の src "${src}" が存在しない`);
     continue;
   }
+  const normalizedSrc = path.normalize(src);
   const key = context ? `${context}::${name}` : name;
   const vocabFiles = vocabFilesByConcept.get(key) || vocabFilesByConcept.get(name);
-  if (vocabFiles && !vocabFiles.has(src)) {
+  if (vocabFiles && !vocabFiles.has(normalizedSrc)) {
     warnings.push(`[src不一致] "${name}" の src "${src}" に @vocab がない（@vocab があるのは: ${[...vocabFiles].join(', ')}）`);
   }
 }
