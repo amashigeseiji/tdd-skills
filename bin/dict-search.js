@@ -142,6 +142,24 @@ function applyFilters(entries, filters) {
   );
 }
 
+// An entry is flagged when it has nothing pointing out (empty relations / no
+// inline #ref in its definition) and/or nothing pointing in (no other entry
+// references it). Either condition alone is grounds for the human to confirm
+// intent ("legitimate primitive concept" vs. "accidentally disconnected").
+function findOrphans(allEntries) {
+  return allEntries
+    .map(entry => {
+      const reasons = [];
+      if (getRelatedNames(entry).length === 0) reasons.push('関係フィールドが空');
+      const hasIncoming = allEntries.some(e2 =>
+        key(e2) !== key(entry) && getRelatedNames(e2).includes(entry.name)
+      );
+      if (!hasIncoming) reasons.push('どこからも参照されていない');
+      return { entry, reasons };
+    })
+    .filter(r => r.reasons.length > 0);
+}
+
 function main() {
   const args = process.argv.slice(2);
   const queries = [];
@@ -150,11 +168,15 @@ function main() {
   let summary = false;
   let depth = 0;
   let nameOnly = false;
+  let dumpAll = false;
+  let orphans = false;
 
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
   dict-search.js [options] <query> [<query2> ...] [<plans_dir>]
   dict-search.js [options] -f field=value
+  dict-search.js --all [-f field=value] [<plans_dir>]
+  dict-search.js --orphans [<plans_dir>]
 
 Options:
   -s, --summary        一覧表示（定義・関係を省いた1行形式）
@@ -163,6 +185,9 @@ Options:
                        例: -d1  -d 2  --depth 3
   -f, --filter f=v     フィールドで絞り込み（複数 -f 可、AND 条件）
                        例: -f context=core  -f domain=testing
+  -a, --all            クエリなしで全コンテキスト・全エントリを一覧（-f と併用可）
+  -o, --orphans        孤立概念チェック: 関係フィールドが空、または
+                       どこからも参照されていないエントリを列挙
   -h, --help           このヘルプを表示
 
 Arguments:
@@ -182,7 +207,9 @@ Examples:
   dict-search.js -d1 テスト                 # 関連エントリを1段展開
   dict-search.js -f context=core            # フィルタのみ（全件）
   dict-search.js -f context=core テスト     # フィルタ + キーワード
-  dict-search.js テスト ./plans/myproject   # プロジェクト辞書を追加`);
+  dict-search.js テスト ./plans/myproject   # プロジェクト辞書を追加
+  dict-search.js -a -s ./plans/myproject    # 辞書全体を一覧（cat の代わり）
+  dict-search.js -o ./plans/myproject       # 孤立概念チェック`);
     process.exit(0);
   }
 
@@ -201,6 +228,10 @@ Examples:
       const eq = expr.indexOf('=');
       if (eq === -1) { console.error(`Invalid filter: ${expr}`); process.exit(1); }
       filters.push({ field: expr.slice(0, eq), value: expr.slice(eq + 1) });
+    } else if (arg === '--all' || arg === '-a') {
+      dumpAll = true;
+    } else if (arg === '--orphans' || arg === '-o') {
+      orphans = true;
     } else if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
       plansDir = arg;
     } else {
@@ -208,8 +239,8 @@ Examples:
     }
   }
 
-  if (queries.length === 0 && filters.length === 0) {
-    console.error('Usage: dict-search.js [-s] [-n] [-d <depth>] [-f field=value] <query> [<query2> ...] [<plans_dir>]');
+  if (queries.length === 0 && filters.length === 0 && !dumpAll && !orphans) {
+    console.error('Usage: dict-search.js [-s] [-n] [-d <depth>] [-f field=value] [-a] [-o] <query> [<query2> ...] [<plans_dir>]');
     process.exit(1);
   }
 
@@ -222,13 +253,36 @@ Examples:
   const allEntries = mergeEntries(docDict.entries || [], planDict.entries || []);
   const allContexts = mergeContexts(docDict.contexts || [], planDict.contexts || []);
 
+  if (orphans) {
+    const results = findOrphans(allEntries);
+    if (results.length === 0) {
+      console.log('(孤立概念なし)');
+      return;
+    }
+    console.log(`## 孤立概念チェック: ${results.length}件\n`);
+    for (const { entry, reasons } of results) {
+      const enPart = entry.en ? ` (${entry.en})` : '';
+      console.log(`- ${entry.name}${enPart} [${entry.context}/${entry.domain}] — ${reasons.join(', ')}`);
+    }
+    return;
+  }
+
   // Collect deduplicated results across all queries.
   const seenContextDirs = new Set();
   const seenEntryKeys = new Set();
   const contextMatches = [];
   const matches = [];
 
-  if (queries.length > 0) {
+  if (dumpAll) {
+    for (const c of allContexts) {
+      seenContextDirs.add(c.dir);
+      contextMatches.push(c);
+    }
+    for (const e of applyFilters(allEntries, filters)) {
+      seenEntryKeys.add(key(e));
+      matches.push(e);
+    }
+  } else if (queries.length > 0) {
     for (const query of queries) {
       for (const c of searchContexts(allContexts, query, nameOnly)) {
         if (!seenContextDirs.has(c.dir)) {
