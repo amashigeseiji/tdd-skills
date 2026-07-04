@@ -62,7 +62,9 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 ```
 
 以降の `docs/` および `plans/` パスはすべて `<meta>/docs/` と `<meta>/plans/` として扱う。
-辞書の検索には `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js"` を使う。`-s` で1行サマリー、`-n` で名前フィールドのみ検索、`-d1` で関連エントリ展開、複数キーワードを並べると OR 検索。
+辞書の検索には `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js"` を使う。`-s` で1行サマリー、`-n` で名前フィールドのみ検索、`-d1` で関連エントリ展開、複数キーワードを並べると OR 検索。全件を見たいとき（キーワードでは探せない）は `-a` (`--all`)、孤立概念チェックは `-o` (`--orphans`) を使う。
+**辞書の中身を確認するときに `dictionary.json` を `cat` や python 等で直接読み出さない**（検索・一覧・孤立チェックは常に dict-search.js を使う）。
+書き込みは別の話——各サブコマンドが `entries`/`contexts` 配列に追加・更新するのは通常の Read → Edit/Write の手順どおりで、これは禁止していない。JSON 操作用の書き込みツールは未整備（次段階の課題）。
 
 **`src` フィールドの所有権:** `src` は `tdd-run` の7.5が書き込む代表1ファイルの簡易キャッシュ。`tdd-vocab` の各サブコマンドはこれを読むだけで書き込まない。概念の実装箇所を1件だけ確実に知りたい場合は `grep -rn "@vocab: <概念名>"` する（多対多で正式、`check` が整合性を保証する）。
 

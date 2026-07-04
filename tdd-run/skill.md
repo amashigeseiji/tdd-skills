@@ -81,6 +81,11 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -d1 <concept-name
 ```
 
 `-s` returns one-line summaries. `-d1` also expands related entries. Entries under `plans/` take priority over `docs/`.
+**Never `cat` `dictionary.json` to inspect it** (this is about reading — adding entries via Read → Edit, as described later in this skill, is unaffected). For a full overview (not a keyword search), use `-a` (`--all`):
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -a -s <plans_dir>
+```
 
 **If `plans/<project>/dictionary.json` does not exist (new problem):**
 Call `/tdd-vocab plan` before building the tree.
