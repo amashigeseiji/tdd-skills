@@ -24,11 +24,29 @@ function loadDict(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-// Extract concept names from #語彙 notation in definition text.
-// Matches #name followed by space or Japanese punctuation.
-function extractInlineRefs(definition) {
-  const matches = definition.match(/#([^\s。、）「」]+)/g) || [];
-  return matches.map(m => m.slice(1));
+// 定義文中の #参照 を、既知の概念名の最長一致で抽出する。
+// namesByLength は概念名を文字数降順に並べた配列（長い名前を優先して一致させる）。
+// 一致する名前がない #トークン は unresolved として返す（空白・句読点で切り出し）。
+function extractInlineRefs(definition, namesByLength) {
+  const resolved = [];
+  const unresolved = [];
+  let i = 0;
+  while ((i = definition.indexOf('#', i)) !== -1) {
+    const name = namesByLength.find(n => definition.startsWith(n, i + 1));
+    if (name) {
+      resolved.push(name);
+      i += 1 + name.length;
+    } else {
+      const m = /^[^\s。、）「」]+/.exec(definition.slice(i + 1));
+      if (m) unresolved.push(m[0]);
+      i += 1 + (m ? m[0].length : 0);
+    }
+  }
+  return { resolved, unresolved };
+}
+
+function namesSortedByLength(entries) {
+  return [...new Set(entries.map(e => e.name))].sort((a, b) => b.length - a.length);
 }
 
 // Merge two entry arrays. planEntries override docEntries for same (context, name).
@@ -74,8 +92,8 @@ function search(entries, query, nameOnly = false) {
   );
 }
 
-function getRelatedNames(entry) {
-  const fromDef = extractInlineRefs(entry.definition);
+function getRelatedNames(entry, namesByLength) {
+  const fromDef = extractInlineRefs(entry.definition, namesByLength).resolved;
   const fromRels = (entry.relations || []).map(r => r.target);
   return [...new Set([...fromDef, ...fromRels])];
 }
@@ -90,14 +108,14 @@ function isExactMatch(name, queries) {
   return queries.some(q => q === name);
 }
 
-function expandRelations(seeds, allEntries, depth, seenKeys) {
+function expandRelations(seeds, allEntries, depth, seenKeys, namesByLength) {
   if (depth === 0) return [];
   const result = [];
   let frontier = seeds;
   for (let d = 0; d < depth; d++) {
     const next = [];
     for (const m of frontier) {
-      for (const name of getRelatedNames(m)) {
+      for (const name of getRelatedNames(m, namesByLength)) {
         for (const e of findByName(allEntries, name)) {
           if (!seenKeys.has(key(e))) {
             seenKeys.add(key(e));
@@ -113,10 +131,10 @@ function expandRelations(seeds, allEntries, depth, seenKeys) {
   return result;
 }
 
-function formatEntry(entry, summary = false) {
+function formatEntry(entry, summary = false, namesByLength = []) {
   const enPart = entry.en ? ` (${entry.en})` : '';
   if (summary) {
-    const related = getRelatedNames(entry);
+    const related = getRelatedNames(entry, namesByLength);
     const relPart = related.length > 0 ? ` → ${related.join(', ')}` : '';
     return `- ${entry.name}${enPart} [${entry.context}/${entry.domain}]${relPart}`;
   }
@@ -147,12 +165,13 @@ function applyFilters(entries, filters) {
 // references it). Either condition alone is grounds for the human to confirm
 // intent ("legitimate primitive concept" vs. "accidentally disconnected").
 function findOrphans(allEntries) {
+  const namesByLength = namesSortedByLength(allEntries);
   return allEntries
     .map(entry => {
       const reasons = [];
-      if (getRelatedNames(entry).length === 0) reasons.push('関係フィールドが空');
+      if (getRelatedNames(entry, namesByLength).length === 0) reasons.push('関係フィールドが空');
       const hasIncoming = allEntries.some(e2 =>
-        key(e2) !== key(entry) && getRelatedNames(e2).includes(entry.name)
+        key(e2) !== key(entry) && getRelatedNames(e2, namesByLength).includes(entry.name)
       );
       if (!hasIncoming) reasons.push('どこからも参照されていない');
       return { entry, reasons };
@@ -252,6 +271,7 @@ Examples:
 
   const allEntries = mergeEntries(docDict.entries || [], planDict.entries || []);
   const allContexts = mergeContexts(docDict.contexts || [], planDict.contexts || []);
+  const namesByLength = namesSortedByLength(allEntries);
 
   if (orphans) {
     const results = findOrphans(allEntries);
@@ -315,7 +335,7 @@ Examples:
     return;
   }
 
-  const relatedEntries = expandRelations(matches, allEntries, depth, seenEntryKeys);
+  const relatedEntries = expandRelations(matches, allEntries, depth, seenEntryKeys, namesByLength);
 
   const resultLabel = [
     queries.map(q => `"${q}"`).join(' '),
@@ -335,7 +355,7 @@ Examples:
     console.log(`### エントリ (${matches.length}件)\n`);
     for (const e of matches) {
       const expand = !summary || isExactMatch(e.name, queries);
-      console.log(formatEntry(e, !expand));
+      console.log(formatEntry(e, !expand, namesByLength));
       if (expand) console.log('');
     }
     if (summary) console.log('');
@@ -343,7 +363,7 @@ Examples:
   if (relatedEntries.length > 0) {
     console.log(`### 関連エントリ (${relatedEntries.length}件)\n`);
     for (const e of relatedEntries) {
-      console.log(formatEntry(e, summary));
+      console.log(formatEntry(e, summary, namesByLength));
       if (!summary) console.log('');
     }
   }

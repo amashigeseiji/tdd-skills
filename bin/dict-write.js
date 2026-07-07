@@ -143,9 +143,25 @@ function normalizeInput(parsed) {
   fail('入力の形式を認識できません。エントリ（name/definition あり）、コンテキスト（dir あり）、その配列、または {contexts, entries} を渡してください');
 }
 
-function extractInlineRefs(definition) {
-  const matches = definition.match(/#([^\s。、）「」]+)/g) || [];
-  return matches.map(m => m.slice(1));
+// 定義文中の #参照 を、既知の概念名の最長一致で抽出する。
+// namesByLength は概念名を文字数降順に並べた配列（長い名前を優先して一致させる）。
+// 一致する名前がない #トークン は unresolved として返す（空白・句読点で切り出し）。
+function extractInlineRefs(definition, namesByLength) {
+  const resolved = [];
+  const unresolved = [];
+  let i = 0;
+  while ((i = definition.indexOf('#', i)) !== -1) {
+    const name = namesByLength.find(n => definition.startsWith(n, i + 1));
+    if (name) {
+      resolved.push(name);
+      i += 1 + name.length;
+    } else {
+      const m = /^[^\s。、）「」]+/.exec(definition.slice(i + 1));
+      if (m) unresolved.push(m[0]);
+      i += 1 + (m ? m[0].length : 0);
+    }
+  }
+  return { resolved, unresolved };
 }
 
 function key(e) {
@@ -226,22 +242,13 @@ function validateEntry(entry, { knownDirs, targetIsStable }) {
   return { errors, warnings };
 }
 
-// #参照 の抽出はスペースや記号で切れるため（例: #dwell in（棲みつく）、#問題→辞書）、
-// 完全一致に加えて前方一致（どちらの方向でも）を解決とみなす。
-function resolvesRef(token, names) {
-  if (names.has(token)) return true;
-  for (const n of names) {
-    if (n.startsWith(token) || token.startsWith(n)) return true;
-  }
-  return false;
-}
-
 // Reference checks against the merged universe (docs + target + batch).
 // strict=true (promote) turns unresolved references into errors.
 function checkReferences(entry, universe, strict = false) {
   const errors = [];
   const warnings = [];
   const names = new Set(universe.map(e => e.name));
+  const namesByLength = [...names].sort((a, b) => b.length - a.length);
   const label = `エントリ ${entry.name}`;
 
   for (const r of entry.relations || []) {
@@ -250,11 +257,10 @@ function checkReferences(entry, universe, strict = false) {
       (strict ? errors : warnings).push(strict ? `${msg}（一緒に昇格するか relations を修正する）` : msg);
     }
   }
-  for (const ref of extractInlineRefs(entry.definition || '')) {
-    if (!resolvesRef(ref, names)) {
-      const msg = `${label}: definition 中の参照 #${ref} が見つかりません`;
-      (strict ? errors : warnings).push(strict ? `${msg}（一緒に昇格するか定義を修正する）` : msg);
-    }
+  const { resolved, unresolved } = extractInlineRefs(entry.definition || '', namesByLength);
+  for (const ref of unresolved) {
+    const msg = `${label}: definition 中の参照 #${ref} が見つかりません`;
+    (strict ? errors : warnings).push(strict ? `${msg}（一緒に昇格するか定義を修正する）` : msg);
   }
 
   // contains はライフサイクルの統括宣言なので、相手側からのリンク
@@ -266,12 +272,14 @@ function checkReferences(entry, universe, strict = false) {
     if (others.length === 0) continue;
     const linked = others.some(o =>
       (o.relations || []).some(r2 => r2.target === entry.name) ||
-      extractInlineRefs(o.definition || '').includes(entry.name)
+      extractInlineRefs(o.definition || '', namesByLength).resolved.includes(entry.name)
     );
     if (!linked) warnings.push(`${label}: ${r.type} の相手 "${r.target}" 側にこのエントリへのリンクがありません（双方向性）`);
   }
 
-  if ((entry.relations || []).length === 0 && extractInlineRefs(entry.definition || '').length === 0) {
+  // 未解決の #参照 も「関係を書く意図」としては存在するので空扱いにしない
+  // （未解決自体は上の警告で報告済み。二重警告を避ける）。
+  if ((entry.relations || []).length === 0 && resolved.length === 0 && unresolved.length === 0) {
     warnings.push(`${label}: 関係が空です（孤立概念になります。dict-search.js -o で確認）`);
   }
 
@@ -583,6 +591,8 @@ function main() {
 語彙辞書への書き込み専用スクリプト。すべての書き込みは検証を通過しないと実行されない。
 エラー（フォーマット違反・重複・未定義 context 等）は書き込みを拒否し、
 警告（参照未解決・双方向性の欠け・孤立等）は書き込んだうえで報告する。
+定義中の #参照 は、既知の概念名が # の直後からそのまま続いている場合に
+最長一致で解決する（例: #問題定義 は「問題」ではなく「問題定義」に解決）。
 
 入力: --file がなければ stdin から JSON を読む。末尾カンマは許容。
   - エントリ1件、エントリの配列、コンテキスト（dir を持つオブジェクト）、
