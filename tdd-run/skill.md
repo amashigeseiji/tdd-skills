@@ -81,7 +81,7 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -d1 <concept-name
 ```
 
 `-s` returns one-line summaries. `-d1` also expands related entries. Entries under `plans/` take priority over `docs/`.
-**Never `cat` `dictionary.json` to inspect it** (this is about reading — adding entries via Read → Edit, as described later in this skill, is unaffected). For a full overview (not a keyword search), use `-a` (`--all`):
+**Never `cat` `dictionary.json` to inspect it, and never edit it directly** — reading goes through `dict-search.js`, writing goes through `dict-write.js` (`add` / `update`; usage shown at each write step below). For a full overview (not a keyword search), use `-a` (`--all`):
 
 ```bash
 node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -a -s <plans_dir>
@@ -273,10 +273,12 @@ For each candidate (known or novel):
 2. Present the original and restructured trees side by side
 3. Ask the user: does the restructured tree have better clarity?
 4. If adopted, register in `plans/<project>/dictionary.json`:
-   ```json
-   {"name":"<パターン名>","en":"PatternName","context":null,"domain":"pattern","definition":"...","heuristic":"...","wip":{"status":"new","discovered":"tdd-run"}}
+   ```bash
+   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
+   {"name":"<パターン名>","en":"PatternName","context":null,"domain":"pattern","definition":"...","heuristic":"..."}
+   EOF
    ```
-   For novel patterns, also add `components` with role descriptions.
+   The `wip` field is attached automatically. For novel patterns, also add `components` with role descriptions.
 
 If no pattern fits, proceed as-is.
 
@@ -375,9 +377,19 @@ Device concepts (loaders, builders, etc. — those functioning as tree subjects 
 **Register solution domain vocabulary:**
 
 Among node names that correspond to the solution domain (device, transformation, operation names),
-add them to `plans/<project>/dictionary.json` entries array.
+add them to `plans/<project>/dictionary.json` via `dict-write.js` (never edit the JSON directly):
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
+[
+  { "name": "<概念名>", "en": "<ConceptName>", "context": "<dir>", "domain": "solution",
+    "definition": "...", "relations": [{ "type": "references", "target": "<概念名>", "note": "" }] }
+]
+EOF
+```
+
+The `wip` field is attached automatically. Validation errors reject the whole write — fix the input and rerun.
 Exclude: root nodes, concepts already registered as application domain vocabulary, implementation-detail subdivisions.
-Add with `domain:"solution"` in the same format as step 2.
 
 The correspondence between application domain concepts and these will be confirmed during the walkthrough (step 7.5).
 
@@ -465,6 +477,8 @@ If the user accepts, proceed to step 7.5.
 ### 7.5. Dictionary / test / implementation walkthrough
 
 Confirm names are consistent across phases and update `plans/<project>/dictionary.json`.
+Dictionary updates in this step go through `dict-write.js` (`add` for new entries, `update` for
+existing ones — `update` replaces only the fields you pass; arrays like `relations` are replaced whole).
 
 First create a correspondence table:
 
@@ -488,7 +502,12 @@ First create a correspondence table:
 - **Implementation → vocabulary**: Among device names that appear in implementation, consider adding any unregistered ones.
 - **Vocabulary → type**: Does a type definition corresponding to data concept vocabulary entries exist?
   If not, define it there. If there was a type stub from step 4, fill in fields confirmed by implementation.
-- **Vocabulary → src**: Write the confirmed implementation path into the `"src"` field of each vocabulary entry.
+- **Vocabulary → src**: Write the confirmed implementation path into the `"src"` field of each vocabulary entry:
+  ```bash
+  node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <概念名> <<'EOF'
+  { "src": "src/<dir>/<file>.js" }
+  EOF
+  ```
   Also verify it matches the file placement decided during the module boundary check in step 4.
 - **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for `depgraph.regen`.
   If absent, skip this point and note in findings that the check was skipped (mention `/tdd-scaffold depgraph` as an opt-in setup).
