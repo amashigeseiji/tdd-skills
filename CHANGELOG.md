@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## 2026-07-07
+
+### Added
+- **`dict-write.js` を追加（辞書への書き込み専用スクリプト）** — JSON 配列への要素追加・更新が
+  文字列置換ベースの Edit ツールで表現しづらく、python 等で `dictionary.json` を直接操作する
+  抜け道になっていた（dictionary-read-write.md P-03）。`add`（wip 自動付与）・`update`（フィールド
+  差し替え）・`promote`（wip 除去、参照未解決は安定層保護のためエラー）・`remove`・`check`
+  （検証のみ）を提供し、すべての書き込みはフォーマット・重複・context 存在・参照整合の検証を
+  通過しないと実行されない。入力は stdin または `--file` の JSON（末尾カンマ許容）。
+  `tdd-vocab plan`（手順6）・`tdd-vocab promote`（手順1〜3）・`tdd-run`（手順4のパターン登録と
+  ソリューションドメイン語彙登録、手順7.5の src 書き込み）を dict-write.js を使うよう更新し、
+  辞書の読み取り（dict-search.js）と書き込み（dict-write.js）の分離が完成した。
+
 ## 2026-07-03
 
 ### Added

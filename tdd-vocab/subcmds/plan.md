@@ -68,8 +68,19 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -o <plans_dir>
 
 **6. plans/<プラン名>/dictionary.json に書く**
 
-`contexts` 配列にコンテキスト定義を、`entries` 配列にアプリドメインエントリを追加する。
-ソリューションドメインエントリは tdd-run の手順4で追加される。
-
+書き込みには `dict-write.js` を使う（Edit/Write や python で JSON を直接操作しない）。
 エントリを書く前に `${CLAUDE_SKILL_DIR}/format.json` を Read してフォーマットを確認する。
-wip フィールドを追加すること（`"wip": { "status": "new", "discovered": "tdd-vocab plan" }`）。
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add \
+  --to <plans_dir>/dictionary.json --discovered "tdd-vocab plan" <<'EOF'
+{
+  "contexts": [ <コンテキスト定義（新設の場合のみ）> ],
+  "entries": [ <アプリドメインエントリ> ]
+}
+EOF
+```
+
+wip フィールドは自動付与される。検証エラー（フォーマット違反・重複・未定義 context）が出たら
+入力を直して再実行する。警告（参照未解決・孤立）は意図的なものか確認し、そうでなければ修正する。
+ソリューションドメインエントリは tdd-run の手順4で追加される。
