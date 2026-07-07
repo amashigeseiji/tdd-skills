@@ -1,11 +1,19 @@
-# /tdd-vocab migrate — 辞書フォーマット移行（.md → .json）
+# /tdd-vocab migrate — 辞書フォーマット移行
 
 ## 目的
 
-`dictionary.md` 形式（旧）を `dictionary.json` 形式（新）に変換する。
-`docs/dictionary.md` と `plans/*/dictionary.md` を対象とする。
+旧フォーマットの辞書を現行フォーマットに移行する。移行は2種類ある:
 
-## 手順
+- **移行1（.md → .json）**: `dictionary.md` 形式（旧）を `dictionary.json` 形式（新）に変換する
+- **移行2（en の一括付与）**: `en` が必須化される前に登録された JSON エントリに英語名を付与する
+
+どちらが必要かは状況から判断する（`dictionary.md` が残っている → 移行1、
+`dict-write.js check` が「en（PascalCase の英語名）が必要です」を出す → 移行2）。
+両方該当する場合は移行1を先に行う。
+
+## 移行1: .md → .json
+
+`docs/dictionary.md` と `plans/*/dictionary.md` を対象とする。
 
 **1. 対象ファイルを確認する**
 
@@ -112,3 +120,47 @@ mv "<meta>/docs/dictionary.md" "<meta>/docs/dictionary.md.bak"
 ```
 
 エントリが 0 件だった場合や変換に疑問点があった場合は、その旨を明示して確認を求める。
+
+## 移行2: en 未設定エントリへの一括付与
+
+`en`（PascalCase の英語名）が必須化される前に登録されたエントリは `en` が
+null / 未設定のまま残っており、その辞書への `dict-write.js check` は常に exit 1 になる。
+概念の意味は変わらないため、`en` の付与だけを一括で行う。
+
+**1. 対象エントリを洗い出す**
+
+```bash
+find "<meta>/docs" "<meta>/plans" -name "dictionary.json" -not -path "*/archives/*" 2>/dev/null
+```
+
+各ファイルに `check` をかけ、「en（PascalCase の英語名）が必要です」エラーが出る
+ファイルとエントリを特定する。対象が 0 件なら「移行対象なし」と伝えて終了する。
+
+**2. 英語名を提案し、承認を得る**
+
+対象エントリの `name`・`definition` を読み、役割の伝わる PascalCase の英語名を提案する。
+
+- 同一辞書内で `en` が重複しないこと
+- 既に `en` を持つ既存エントリの命名の調子（粒度・語彙選択）と揃えること
+- `en` 以外のフィールド（definition・relations 等）には触れない
+
+提案を一覧表（概念名 / context / 提案 en）にしてユーザーに提示し、承認を得てから書き込む。
+英語名の付与は機械的に見えて命名の判断を含むため、承認なしで書き込まない。
+
+**3. dict-write.js update で書き込む**
+
+エントリごとに `en` だけのパッチを渡す（Edit/Write で JSON を直接編集しない）:
+
+```bash
+echo '{"en": "ConceptName"}' | node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update \
+  --to <dict.json> --name <概念名> --context <dir>
+```
+
+**4. check で確認し、結果を報告する**
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" check <dict.json>
+```
+
+en エラーが消えたこと（exit 0、または残る警告が en と無関係であること）を確認し、
+付与したエントリ数と対応表を報告する。

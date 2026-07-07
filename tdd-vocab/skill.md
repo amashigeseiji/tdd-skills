@@ -37,7 +37,7 @@ tdd-run が「できる」のツリーを構成するとき、語彙セットに
 | `/tdd-vocab promote` | ユーザーの任意タイミング | plans/ の語彙を docs/dictionary.json に昇格する |
 | `/tdd-vocab annotate` | アノテーションなしで書き進めた後・既存コードへの導入時 | 実装を読んで辞書と照合し @vocab / @test アノテーションを付与する |
 | `/tdd-vocab check` | 整合性が気になるとき | 孤立概念・リンク切れ・矛盾を確認する |
-| `/tdd-vocab migrate` | tdd-skills を更新後・旧プロジェクトに導入するとき | `dictionary.md`（旧）を `dictionary.json` に変換する |
+| `/tdd-vocab migrate` | tdd-skills を更新後・旧プロジェクトに導入するとき | 旧フォーマットを現行に移行する（`dictionary.md` → `dictionary.json` 変換、旧エントリへの `en` 一括付与） |
 
 ## 実行
 
@@ -72,7 +72,7 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 
 ## 制約
 
-- **docs/dictionary.json に書き込むのはこのスキルの promote のみ**（`dict-write.js promote` / 再定義時の `update`。tdd-run は plans/*/dictionary.json に書く）
+- **docs/dictionary.json に書き込むのはこのスキルの promote と migrate のみ**（`dict-write.js promote` / 再定義時・移行時の `update`。tdd-run は plans/*/dictionary.json に書く）
 - **promote はユーザーの承認なしに行わない**
 - **再定義は必ず check を経る**
 - **新しいエントリを作る前に、既存語彙で表現できないかを確認する**
