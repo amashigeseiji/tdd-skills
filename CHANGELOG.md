@@ -3,6 +3,25 @@
 ## 2026-07-09
 
 ### Changed
+- **problem.md の `**作業ディレクトリ:**` フィールドを廃止（絶対パスの実行時解決へ）** —
+  コミットされる problem.md に絶対パスを書かせていたため、複数マシンでリポジトリを扱うと
+  壊れる（実在しないパスが記録される誤記としても表面化していた）。`bin/find-config.sh <project>`
+  が `META`/`WORK_REPO`/`PLANS_DIR` の3変数を出力するようになり、作業レポジトリの絶対パスは
+  実行時に解決される（`<meta>/<名前>` → なければ `.claude/tdd/config.local.json` の
+  `repos.<名前>`、それもなければ `UNRESOLVED:<名前>` を返しスキルがユーザーに聞いて保存）。
+  tdd-run / tdd-feedback の変数解決の散文をこの呼び出しに置き換え、tdd-init に
+  config.local.json の .gitignore 追加手順を追加。
+  **マイグレーション**: 既存の problem.md はそのままで動く。旧フィールドは実在するパスなら
+  フォールバックとして使われ（stderr で移行を促す）、実在しなければ無視される。
+- **depgraph に `scope`（グラフのカバー範囲）を追加、多言語プロジェクト対応** —
+  多言語プロジェクトで一部の言語しかグラフ化できない場合に「カバー外」を表現できず、
+  グラフ化できない言語のコンテキストでは孤立ノードチェックの手動スキップが必要だった。
+  `config.json` の `depgraph.scope`（glob 配列）でカバー範囲を宣言し、tdd-run 手順7.5 は
+  scope 外のファイルを「孤立」ではなく「グラフ対象外」としてスキップ、tdd-vocab init も
+  scope 外パスでは depgraph を使わない。正規化 JSON のエッジの意味づけを「import しているファイル」
+  から「参照している言語要素の定義元ファイル」（言語レベル依存の射影）に再定義。
+  tdd-scaffold に多言語プロジェクトの指針（コンテキスト→言語のマッピングで scaffold.sh を分岐）を追加。
+  設計は `docs/references/multilang-scaffold-depgraph.md`・`docs/references/workdir-path-resolution.md`。
 - **`tdd-vocab promote` の承認前に各概念の内容を表で提示することを必須化** —
   feedback からの昇格時に「新規n件の昇格・既存n件の更新を行います。よいですか？」と
   件数だけで承認を求める運用に潰れていた（提示形式が未指定だったため）。

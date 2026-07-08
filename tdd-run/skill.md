@@ -18,44 +18,29 @@ Do this first, before reading any files. `<project>` is a directory name under `
 
 ### Determine the meta-repo root
 
-Search upward from CWD for `.claude/tdd/config.json`:
+Resolve the three path variables in one call:
 
 ```bash
-bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh" <project>
 ```
 
-Set the directory it printed as `<meta>`.
-If not found, run `/tdd-init` first, then return.
+The output gives `<meta>` (META), `<work_repo_abs>` (WORK_REPO), and `<plans_dir>` (PLANS_DIR).
+If it exits with status 1 (no `.claude/tdd/config.json` found), run `/tdd-init` first, then return.
 
-### Identify the working repository
+**If WORK_REPO is `UNRESOLVED:<name>`**: the working repo `<name>` is neither a subdirectory
+of `<meta>` nor registered in `.claude/tdd/config.local.json` (per-machine, untracked).
+Ask the user for its absolute path, verify the directory exists, then save it:
 
-Read 2 fields from `<meta>/plans/<project>/problem.md`:
-
-```bash
-grep "^\*\*作業レポジトリ:" <meta>/plans/<project>/problem.md
-grep "^\*\*作業ディレクトリ:" <meta>/plans/<project>/problem.md
+```json
+// <meta>/.claude/tdd/config.local.json
+{ "repos": { "<name>": "/absolute/path/answered/by/user" } }
 ```
 
-- **If `**作業レポジトリ:**` exists**: the value (e.g., `example-app`) is the working repo name
-  - If `**作業ディレクトリ:**` also exists, use its value as `<work_repo_abs>`
-  - Otherwise use `<meta>/<repo-name>` as `<work_repo_abs>`
-- **If the field is absent**: `<meta>` is `<work_repo_abs>`
+Re-run find-config.sh afterwards. Never write the absolute path into problem.md —
+it is committed and breaks across machines.
 
-### Plans reference path
-
-When `<meta>` and `<work_repo_abs>` **differ** (sub-repo setup):
-
-```
-<plans_dir> = <meta>/plans/<project>
-```
-
-All plans use `<meta>/plans/<project>/` directly.
-
-When `<meta>` and `<work_repo_abs>` are the **same** (single repo):
-
-```
-<plans_dir> = <work_repo_abs>/plans/<project>
-```
+**If stderr mentions the legacy `**作業ディレクトリ:**` field was used**: it still worked,
+but suggest migrating (save the path into config.local.json and delete the field from problem.md).
 
 ---
 
@@ -512,10 +497,13 @@ First create a correspondence table:
 - **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for `depgraph.regen`.
   If absent, skip this point and note in findings that the check was skipped (mention `/tdd-scaffold depgraph` as an opt-in setup).
   If present:
-  1. Regenerate the graph: `<depgraph.regen>` (writes `<depgraph.graph>`)
-  2. For the file(s) just implemented, resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see the note above)
-  3. Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>` and check whether any result matches one of the `entry_points` globs
-  4. If none match, the node is isolated from composition — record it in findings as a false-negative risk (see "Test and module design")
+  1. For the file(s) just implemented, resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see the note above)
+  2. If `depgraph.scope` is set and a file matches none of its globs, that file is **outside graph
+     coverage** (e.g., a language the graph tool cannot analyze) — skip it and note in findings
+     that the check did not apply, NOT that the node is isolated
+  3. Regenerate the graph: `<depgraph.regen>` (writes `<depgraph.graph>`)
+  4. Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>` and check whether any result matches one of the `entry_points` globs
+  5. If none match, the node is isolated from composition — record it in findings as a false-negative risk (see "Test and module design")
 
 ### 8. Integration and behavior verification (make it usable)
 

@@ -9,7 +9,7 @@
 //
 // 入力 JSON の形（プロジェクト側の depgraph.regen が生成する）:
 //   { "modules": [ { "source": "<path>", "dependencies": ["<path>", ...] } ] }
-// dependencies は forward edge（このファイルが import しているファイル）のみでよい。
+// dependencies は forward edge（このファイルが参照している言語要素の定義元ファイル）のみでよい。
 // dependents（依存元）はこのスクリプトが起動時に逆引きして計算する。
 // 外部パッケージ・未解決の import は事前に除外されている前提。
 //

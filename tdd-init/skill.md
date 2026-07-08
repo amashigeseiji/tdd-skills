@@ -35,6 +35,18 @@ mkdir -p .claude/tdd
 必要になったタイミングで追記する。ここでは絶対パスを書かない — 書くと clone/移動時に
 実際の場所と食い違い、コミットもできなくなる。）
 
+**config.local.json の gitignore 追加:**
+
+`.claude/tdd/config.local.json` はマシン固有の絶対パス（作業レポジトリの場所など）の受け皿で、
+コミットしてはいけない。`.gitignore` に追加する（すでに含まれている場合はスキップ）:
+
+```bash
+echo '.claude/tdd/config.local.json' >> .gitignore
+```
+
+ファイル自体はここでは作らない — 必要になったスキル（tdd-run / tdd-feedback）が
+解決できないパスに出会ったときに作る。
+
 **plans/ の追跡設定:**
 
 ユーザーに確認する:

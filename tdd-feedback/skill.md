@@ -26,15 +26,20 @@ tdd-run が完了したら必ず起動する。**別セッションで動かす*
 
 ## 読み込み
 
-まず CWD から上に向かって `.claude/tdd/config.json` を探し、パスを確定する:
+まず3つのパス変数を1回で解決する:
 
 ```bash
-bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
+bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh" <project>
 ```
 
-- `<meta>` = 出力されたディレクトリ
-- `<work_repo_abs>` = problem.md の `**作業ディレクトリ:**`（なければ `<meta>`）
-- `<plans_dir>` = `<meta>` != `<work_repo_abs>` なら `<meta>/plans/<project>`、同じなら `<work_repo_abs>/plans/<project>`
+出力の META が `<meta>`、WORK_REPO が `<work_repo_abs>`、PLANS_DIR が `<plans_dir>`。
+
+- **WORK_REPO が `UNRESOLVED:<名前>` の場合**: 作業レポジトリが `<meta>` のサブディレクトリでも
+  `.claude/tdd/config.local.json`（マシンごと・git 非追跡）の登録済みでもない。ユーザーに絶対パスを
+  聞き、ディレクトリの存在を確認してから `<meta>/.claude/tdd/config.local.json` の `repos.<名前>` に
+  保存し、find-config.sh を再実行する。**problem.md に絶対パスを書かない**（コミットされるため）
+- **stderr に旧フィールド `**作業ディレクトリ:**` で解決した旨が出た場合**: 動作はするが、
+  config.local.json への保存とフィールド削除（移行）を提案する
 
 ```bash
 cat <plans_dir>/problem.md

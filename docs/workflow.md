@@ -10,7 +10,8 @@
 （例: メタレポ/サブレポ構成）
 
 - メタレポ (`<meta>`): `plans/` と `docs/` を管理する。`.claude/tdd/config.json` があるディレクトリ。
-- サブレポ (`<work_repo_abs>`): 実装コードを管理する。`problem.md` の `**作業ディレクトリ:**` に記録されている。
+- サブレポ (`<work_repo_abs>`): 実装コードを管理する。`problem.md` の `**作業レポジトリ:**`（名前）から
+  実行時に解決される（`bin/find-config.sh <project>`。`<meta>/<名前>` → なければ `.claude/tdd/config.local.json`）。
 
 単一レポ構成の場合は `<meta>` == `<work_repo_abs>`。
 

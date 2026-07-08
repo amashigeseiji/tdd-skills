@@ -40,6 +40,8 @@ ls packages/ 2>/dev/null || true
 （`<depgraph.regen>` 実行後、`node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" -s <depgraph.graph> <path>`）。
 ただし依存構造とドメイン境界は一致しないことも多い（util の相互依存など）ので、あくまで
 人間に提示する傍証の一つに留め、決定はユーザーとの対話でする。未設定なら何もしない。
+`depgraph.scope` が設定されていて対象パスが範囲外の場合も depgraph は使わない
+（グラフがその領域をカバーしていないため。ディレクトリ境界だけで判断する）。
 
 **3. 候補をユーザーに提示し確定する**
 
@@ -77,7 +79,8 @@ ls packages/ 2>/dev/null || true
 
 `depgraph.regen` が設定されていれば、共有ファイルの依存元を
 `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d<N> <depgraph.graph> <path>`
-で調べ、どのコンテキストのディレクトリから参照されているかを裏付けに使える。未設定なら何もしない。
+で調べ、どのコンテキストのディレクトリから参照されているかを裏付けに使える。
+未設定なら何もしない（`depgraph.scope` 範囲外のパスも同様）。
 
 **6. docs/dictionary.json に書く**
 
