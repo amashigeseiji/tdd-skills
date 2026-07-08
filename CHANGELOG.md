@@ -37,8 +37,8 @@
 ### Changed
 - **`tdd-vocab migrate` に「en 未設定エントリへの一括付与」（移行2）を追加** —
   `en`（PascalCase 英語名）が必須化される前に登録されたエントリが残っている辞書は
-  `dict-write.js check` が常に exit 1 になる（tenjuu99-blog の feedback F-06 で発覚。
-  該当 95 件中 46 件）。migrate を「.md → .json 変換（移行1）」と「en 一括付与（移行2）」の
+  `dict-write.js check` が常に exit 1 になる（利用プロジェクトの feedback で発覚）。
+  migrate を「.md → .json 変換（移行1）」と「en 一括付与（移行2）」の
   2 部構成に再編。移行2は対象洗い出し → 英語名の提案とユーザー承認 → `dict-write.js update`
   で en のみパッチ → check で確認、の手順。命名判断を含むため承認なしでは書き込まない。
 
