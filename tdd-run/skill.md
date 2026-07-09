@@ -79,6 +79,21 @@ Vocabulary defined at this stage is a **working hypothesis** — write it to `pl
 WIP vocabulary acts as provisional guardrails.
 After implementation and acceptance, promote to stable with `/tdd-vocab promote`.
 
+**Vocabulary registration rule (applies to every `dict-write.js add` in this skill):**
+
+Before registering new concepts, present the content of each concept as a table
+**in the message body**, and get the user's approval. Do not ask for approval with a
+name-only enumeration ("新規2件: 概念A, 概念B") or with bare names as selection choices:
+
+```
+| 概念名 | コンテキスト/ドメイン | 定義（案） | 関係 |
+|--------|----------------------|------------|------|
+| <name> | <context>/<domain> | <定義の案> | <他概念との関係> |
+```
+
+What the user judges is not the acceptance of names but the content of definitions
+and relations. Run `dict-write.js` only after this table has been shown and approved.
+
 **Check for `.claude/tdd/scaffold.sh`:**
 If it does not exist, call `/tdd-scaffold` to generate it.
 
@@ -166,7 +181,8 @@ If existing vocabulary suffices, do not create a new name.
 If not, define a new X:
 Express it as "X is something that can xxx."
 The name is a **Japanese concept name** (e.g., `フロントマターテンプレートローダー`).
-Once named, add to `plans/<project>/dictionary.json` entries array:
+Once named, present it following the **vocabulary registration rule** (table + approval),
+then add to `plans/<project>/dictionary.json` entries array:
 `{"name":"<概念名>","en":"EnglishName","context":"<context>","domain":"application","definition":"xxx ができるもの","relations":[],"src":null,"wip":{"status":"new","discovered":"tdd-run"}}`
 
 Once root X is determined, declare the relationship between the entry point identified in step 1 and X:
@@ -257,7 +273,9 @@ For each candidate (known or novel):
 1. Restructure the tree draft using the pattern's vocabulary
 2. Present the original and restructured trees side by side
 3. Ask the user: does the restructured tree have better clarity?
-4. If adopted, register in `plans/<project>/dictionary.json`:
+4. If adopted, present the entry content following the **vocabulary registration rule**
+   (table + approval — the tree comparison in step 2 does not substitute for it, since it
+   shows neither the definition nor the heuristic), then register in `plans/<project>/dictionary.json`:
    ```bash
    node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
    {"name":"<パターン名>","en":"PatternName","context":null,"domain":"pattern","definition":"...","heuristic":"..."}
@@ -362,7 +380,9 @@ Device concepts (loaders, builders, etc. — those functioning as tree subjects 
 **Register solution domain vocabulary:**
 
 Among node names that correspond to the solution domain (device, transformation, operation names),
-add them to `plans/<project>/dictionary.json` via `dict-write.js` (never edit the JSON directly):
+present them following the **vocabulary registration rule** (table + approval — tree confirmation
+covered names and predicates only, not definitions and relations), then add them to
+`plans/<project>/dictionary.json` via `dict-write.js` (never edit the JSON directly):
 
 ```bash
 node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
