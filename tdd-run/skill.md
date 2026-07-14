@@ -94,6 +94,15 @@ name-only enumeration ("新規2件: 概念A, 概念B") or with bare names as sel
 What the user judges is not the acceptance of names but the content of definitions
 and relations. Run `dict-write.js` only after this table has been shown and approved.
 
+**Never put the table and a confirmation dialog in the same turn.** Text output right
+before a dialog tool (AskUserQuestion etc.) can be buried behind the dialog UI and never
+reach the user — the approval then degrades to name-only choices. Do not use a dialog
+tool for this approval: end the turn with the table and the points to confirm as plain
+text, and take the approval from the user's text reply. The same applies to the other
+present-then-confirm steps in this skill (tree confirmation and pattern comparison in
+step 4): whatever the user must see has to be the final text of the turn, with no tool
+call after it.
+
 **Check for `.claude/tdd/scaffold.sh`:**
 If it does not exist, call `/tdd-scaffold` to generate it.
 
