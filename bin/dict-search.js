@@ -133,13 +133,14 @@ function expandRelations(seeds, allEntries, depth, seenKeys, namesByLength) {
 
 function formatEntry(entry, summary = false, namesByLength = []) {
   const enPart = entry.en ? ` (${entry.en})` : '';
+  const wipPart = entry.wip ? ` [wip:${entry.wip.status}]` : '';
   if (summary) {
     const related = getRelatedNames(entry, namesByLength);
     const relPart = related.length > 0 ? ` → ${related.join(', ')}` : '';
-    return `- ${entry.name}${enPart} [${entry.context}/${entry.domain}]${relPart}`;
+    return `- ${entry.name}${enPart} [${entry.context}/${entry.domain}]${wipPart}${relPart}`;
   }
   const lines = [];
-  lines.push(`### ${entry.name}${enPart} [${entry.context}/${entry.domain}]`);
+  lines.push(`### ${entry.name}${enPart} [${entry.context}/${entry.domain}]${wipPart}`);
   lines.push(`**定義:** ${entry.definition}`);
   if (entry.relations && entry.relations.length > 0) {
     lines.push('**関係:**');
@@ -189,6 +190,7 @@ function main() {
   let nameOnly = false;
   let dumpAll = false;
   let orphans = false;
+  let stableOnly = false;
 
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
@@ -207,6 +209,9 @@ Options:
   -a, --all            クエリなしで全コンテキスト・全エントリを一覧（-f と併用可）
   -o, --orphans        孤立概念チェック: 関係フィールドが空、または
                        どこからも参照されていないエントリを列挙
+      --stable-only    安定層（docs/dictionary.json）のみを検索し、
+                       <plans_dir> の同名エントリによる上書きを無視する
+                       （redefine 時に docs 側の現行定義を確認する用途）
   -h, --help           このヘルプを表示
 
 Arguments:
@@ -228,7 +233,8 @@ Examples:
   dict-search.js -f context=core テスト     # フィルタ + キーワード
   dict-search.js テスト ./plans/myproject   # プロジェクト辞書を追加
   dict-search.js -a -s ./plans/myproject    # 辞書全体を一覧（cat の代わり）
-  dict-search.js -o ./plans/myproject       # 孤立概念チェック`);
+  dict-search.js -o ./plans/myproject       # 孤立概念チェック
+  dict-search.js --stable-only -d1 概念名   # docs 側の現行定義を確認（redefine 前）`);
     process.exit(0);
   }
 
@@ -251,6 +257,8 @@ Examples:
       dumpAll = true;
     } else if (arg === '--orphans' || arg === '-o') {
       orphans = true;
+    } else if (arg === '--stable-only') {
+      stableOnly = true;
     } else if (/^(\/|~|\.\.?\/|[A-Za-z]:\\)/.test(arg)) {
       plansDir = arg;
     } else {
@@ -265,7 +273,7 @@ Examples:
 
   const metaRepo = findMetaRepo();
   const docDict = loadDict(path.join(metaRepo, 'docs/dictionary.json'));
-  const planDict = plansDir
+  const planDict = (plansDir && !stableOnly)
     ? loadDict(path.join(plansDir, 'dictionary.json'))
     : { contexts: [], entries: [] };
 

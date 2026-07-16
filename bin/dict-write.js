@@ -348,10 +348,16 @@ function cmdAdd(opts) {
     }
   }
 
-  // Auto-attach wip when writing to the wip layer.
+  // Auto-attach wip when writing to the wip layer. An entry sharing a key with
+  // an existing docs-side entry is a redefinition, not a fresh discovery —
+  // default to that and flag the mismatch if the caller said otherwise.
   for (const entry of input.entries) {
-    if (!stable && entry.wip === undefined) {
-      entry.wip = { status: 'new', discovered: opts.discovered || 'その他' };
+    if (stable) continue;
+    const existsInDocs = docsDict.entries.some(e => key(e) === key(entry));
+    if (entry.wip === undefined) {
+      entry.wip = { status: existsInDocs ? 'redefine' : 'new', discovered: opts.discovered || 'その他' };
+    } else if (existsInDocs && entry.wip.status === 'new') {
+      warnings.push(`エントリ ${entry.name}: docs 側に同名エントリがありますが wip.status が "new" です（"redefine" の間違いでは？）`);
     }
   }
 
@@ -461,9 +467,20 @@ function cmdPromote(opts, names) {
   const errors = [];
   const warnings = [];
 
+  // An entry whose key already exists in docs is a redefinition. wip.status
+  // is the recorded intent for that (set by `add`, checked at write time),
+  // so a "redefine" entry replaces the docs-side entry in place instead of
+  // being rejected as a duplicate; anything else colliding on key is refused.
+  const redefines = [];
+  const adds = [];
   for (const e of moving) {
-    if (toDict.entries.some(t => key(t) === key(e))) {
-      errors.push(`エントリ ${e.name}: 既に安定層に存在します（再定義は update --to ${toPath} を使う）`);
+    const existing = toDict.entries.find(t => key(t) === key(e));
+    if (!existing) {
+      adds.push(e);
+    } else if (e.wip?.status === 'redefine') {
+      redefines.push({ entry: e, existing });
+    } else {
+      errors.push(`エントリ ${e.name}: 既に安定層に存在します（redefine として昇格するには wip.status を "redefine" にする）`);
     }
   }
 
@@ -482,14 +499,18 @@ function cmdPromote(opts, names) {
     }
   }
 
-  const promoted = moving.map(e => {
-    const copy = { ...e };
-    delete copy.wip;
-    return copy;
-  });
+  const strip = e => { const copy = { ...e }; delete copy.wip; return copy; };
+  const promotedAdds = adds.map(strip);
+  const promotedRedefines = redefines.map(({ entry, existing }) => ({ entry: strip(entry), existing }));
+  const promoted = [...promotedAdds, ...promotedRedefines.map(r => r.entry)];
 
   const knownDirs = new Set([...toDict.contexts.map(c => c.dir), ...promotedContexts.map(c => c.dir)]);
-  const universe = [...toDict.entries, ...promoted];
+  // Redefines replace their existing docs-side entry in the reference universe.
+  const replacedExisting = toDict.entries.map(t => {
+    const r = promotedRedefines.find(pr => key(pr.existing) === key(t));
+    return r ? r.entry : t;
+  });
+  const universe = [...replacedExisting, ...promotedAdds];
   for (const e of promoted) {
     const r = validateEntry(e, { knownDirs, targetIsStable: true });
     errors.push(...r.errors);
@@ -502,14 +523,18 @@ function cmdPromote(opts, names) {
   report(errors, warnings);
 
   for (const ctx of promotedContexts) toDict.contexts.push(ctx);
-  for (const e of promoted) insertEntry(toDict.entries, e);
+  for (const e of promotedAdds) insertEntry(toDict.entries, e);
+  for (const { entry, existing } of promotedRedefines) {
+    toDict.entries[toDict.entries.indexOf(existing)] = entry;
+  }
   fromDict.entries = fromDict.entries.filter(e => !moving.includes(e));
   saveDict(toPath, toDict);
   saveDict(opts.from, fromDict);
 
   console.log(`${opts.from} → ${toPath} に昇格しました:`);
   for (const ctx of promotedContexts) console.log(`- コンテキスト昇格: ${ctx.name} [${ctx.dir}]`);
-  for (const e of promoted) console.log(`- ${e.name} [${e.context}/${e.domain}]`);
+  for (const e of promotedAdds) console.log(`- 追加: ${e.name} [${e.context}/${e.domain}]`);
+  for (const { entry } of promotedRedefines) console.log(`- 再定義: ${entry.name} [${entry.context}/${entry.domain}]`);
   if (promotedContexts.length > 0) {
     console.log('\n注: 昇格したコンテキストの定義は plans 側にも残っています（マージで安定層が優先されるため実害はありません）');
   }
@@ -601,6 +626,9 @@ function main() {
 
 add:
   plans 配下（作業仮説層）への追加では wip フィールドを自動付与する。
+  docs 側に同名エントリがあれば wip.status は自動的に "redefine"、
+  なければ "new" になる（明示指定した場合はそちらを使うが、
+  docs 側に同名エントリがあるのに "new" を指定していれば警告する）。
   発見元は --discovered で指定（例: --discovered tdd-run）。
   安定層（docs/dictionary.json）へ wip 付きでは書けない。
 
@@ -611,6 +639,9 @@ update:
 promote:
   plans → docs へ移動し wip を除去する。安定層の整合性を守るため、
   参照未解決（relations の target / #参照 が docs に存在しない）はエラーになる。
+  wip.status: new は docs へ新規追加、wip.status: redefine は docs 側の同名エントリを
+  置き換える（in-place）。docs に同名エントリがあるのに wip.status が redefine でない
+  場合はエラーになる（add 時点の "new"/"redefine" 取り違え検出をすり抜けた場合の保険）。
 
 check:
   書き込まずにファイル全体を検証する。エラーがあれば exit 1。

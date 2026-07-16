@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## 2026-07-17
+
+### Changed
+- **dict-search.js の検索結果に wip.status を表示** — plans 側のエントリが wip（作業仮説）か
+  どうかが `-s`/`-d1` の出力からは分からず、昇格（promote）すべきかの判断のために辞書ファイルを
+  直接開いて確認する回避が必要だった。エントリ表示（summary・詳細とも）に `[wip:new]` /
+  `[wip:redefine]` バッジを追加。
+- **dict-search.js に `--stable-only` を追加** — plans 側に同名エントリがあると docs 側の
+  現行定義が上書きされて見えなくなり、再定義（redefine）の差分提示に必要な「docs 側の元の
+  定義」を確認する手段がなかった。`--stable-only` で docs/dictionary.json のみを検索し、
+  plans 側の上書きを無視できるようにした。
+- **dict-write.js add が redefine と new の取り違えを検出** — docs 側に同名エントリが
+  既にあるのに wip.status を "new" のまま登録してしまう誤りが繰り返し発生していた。
+  wip.status を省略した場合、docs 側に同名エントリがあれば自動的に "redefine"、なければ
+  "new" にする。明示的に "new" を指定していて docs 側に同名エントリがある場合は警告する。
+- **dict-write.js promote が redefine を機械的に反映するように** — 従来は docs 側に
+  同名エントリがあると promote が「既に存在します」で拒否し、再定義は update への
+  手動の書き換えが必要だった。wip.status: redefine のエントリは docs 側の同名エントリを
+  in-place で置き換えるようになり、`promote --all` で new/redefine 混在のまま一括反映
+  できる（redefine 以外での同名衝突は従来どおりエラー）。
+
 ## 2026-07-15
 
 ### Changed

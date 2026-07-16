@@ -72,7 +72,7 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh"
 
 ## 制約
 
-- **docs/dictionary.json に書き込むのはこのスキルの promote と migrate のみ**（`dict-write.js promote` / 再定義時・移行時の `update`。tdd-run は plans/*/dictionary.json に書く）
+- **docs/dictionary.json に書き込むのはこのスキルの promote と migrate のみ**（`dict-write.js promote` は新規・再定義とも反映する / 移行時は `update`。tdd-run は plans/*/dictionary.json に書く）
 - **promote はユーザーの承認なしに行わない**
 - **再定義は必ず check を経る**
 - **新しいエントリを作る前に、既存語彙で表現できないかを確認する**

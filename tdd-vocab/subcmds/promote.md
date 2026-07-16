@@ -26,7 +26,7 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" check <plans_dir>/
 ```
 
 - 区分は docs/dictionary.json との照合で決める（同名エントリが安定層にあれば「再定義」。
-  再定義は手順3の update で反映する）
+  再定義も手順2の promote で docs 側の既存エントリに in-place で反映される）
 - 再定義は表の下に現行定義→新定義の差分を添える
 - 定義を要約する場合も、承認の判断に効く違いは省略しない
 
@@ -46,8 +46,10 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" promote \
   --from <plans_dir>/dictionary.json <概念名> [<概念名2> ...]
 ```
 
-`wip` フィールドの除去とコンテキストの昇格は自動で行われる。安定層の整合性を守るため、
-relations の target や `#参照` が docs 側で解決できない場合はエラーになる
+`wip` フィールドの除去とコンテキストの昇格は自動で行われる。新規（wip.status: new）は
+docs に追加、再定義（wip.status: redefine）は docs 側の同名エントリを in-place で
+置き換える（手動の update は不要）。安定層の整合性を守るため、relations の target や
+`#参照` が docs 側で解決できない場合はエラーになる
 （参照先の概念を一緒に昇格するか、relations を修正してから再実行する）。
 承認されなかった概念で破棄が決まったものは `dict-write.js remove --from <plans_dir>/dictionary.json <概念名>` で消す。
 
@@ -68,12 +70,6 @@ wip コンテキストが既存コンテキストに吸収される（dir 名が
 
 **3. 再定義の場合は影響を確認する**
 
-既存概念の意味が変わった場合、docs/dictionary.json の既存エントリを更新し、
-影響を受ける可能性のある箇所をユーザーに報告する:
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update \
-  --to <meta>/docs/dictionary.json --name <概念名> <<'EOF'
-{ "definition": "<新しい定義>" }
-EOF
-```
+docs/dictionary.json への反映自体は手順2の promote で完了している。既存概念の意味が
+変わった場合は、影響を受ける可能性のある箇所（他のエントリの relations・#参照、
+関連するテストの前提）をユーザーに報告する。
