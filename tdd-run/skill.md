@@ -348,6 +348,10 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_di
 EOF
 ```
 
+Registered `ui` entries do not get a `src` here — that is confirmed during the walkthrough (step 7.5),
+the same as application/solution domain entries, and is also where the wiring to the referenced
+concept(s) gets checked mechanically.
+
 If no node in this tree faces the user, or the user has no specific UI intent to give, skip this
 check.
 
@@ -580,6 +584,25 @@ First create a correspondence table:
   EOF
   ```
   Also verify it matches the file placement decided during the module boundary check in step 4.
+  This applies to `ui` domain entries from step 4 as well. Multiple `ui` entries may share the same
+  `src` when the UI part was not independently modularized (a framework's partial mechanism gives an
+  independent file; inline sub-components do not) — record the sharing plainly, it is not an error,
+  but see the next point for what it costs.
+- **UI → 依存関係の機械チェック（配線確認）**: For each `domain: "ui"` entry from step 4 whose `src` is
+  not shared with another entry (independently modularized), confirm mechanically that the
+  implementation is actually wired to the concept(s) declared in its `relations` — not just that the
+  file exists. Requires the same `depgraph.regen` setting as the isolated-node check below; skip with a
+  note in findings if absent.
+  1. Add `@vocab: <ui-name>` to the `ui` entry's `src` file (same annotation convention as other domains)
+  2. Regenerate the graph if not already done this step: `<depgraph.regen>`
+  3. Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui-entryのsrc>`
+     and check whether the `src` of each `references`/`contains` target appears in the result
+  4. If a target's `src` does not appear, decide: the implementation is missing the wiring (fix it), or
+     the `relations` declared in step 4 no longer match what was built (correct the entry via
+     `dict-write.js update`)
+  If a `ui` entry's `src` is shared with another `ui` entry or its container, skip this check for that
+  entry and note in findings that module granularity made the check inapplicable — this is an accepted
+  tradeoff (see rationale.md), not a defect.
 - **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for `depgraph.regen`.
   If absent, skip this point and note in findings that the check was skipped (mention `/tdd-scaffold depgraph` as an opt-in setup).
   If present:
@@ -599,6 +622,36 @@ Don't stop at test green. Bring the changes to an **actually usable state**:
 - Integrate the changes into the user-facing entry point (UI, CLI, endpoint, etc.)
 - Run the actual app and confirm end-to-end operation
 - If integration requires judgment but information is lacking, integrate with a reasonable default and leave a note in findings
+
+**UI intent conformance check（登録したUI意図との整合確認）:**
+
+Wiring — whether a `ui` entry actually depends on the concept it declared via `relations` — is checked
+mechanically in step 7.5. This check covers what that check cannot see: appearance and states-dependent
+behavior, which only show up once the app actually runs.
+
+Look up the `ui` entries registered for this tree:
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=ui <plans_dir>
+```
+
+While running the actual app, for each entry:
+- Confirm the component/structural role matches what was registered (handle via `references`, container
+  via `contains`)
+- If `relations[].note` ties the entry to a state, confirm the state-conditional display actually
+  behaves as intended (e.g., a "publish" button that only appears while the article is unpublished)
+
+If the running UI diverges from the registered intent:
+- If it is an implementation bug, fix the implementation.
+- If the intent itself changed while building (a better UI emerged through implementation), present the
+  change following the **vocabulary registration rule**, then update the entry:
+  ```bash
+  node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <UI概念名> <<'EOF'
+  { "definition": "...", "relations": [...] }
+  EOF
+  ```
+
+If no `ui` entries were registered for this tree in step 4, skip this check.
 
 ### 8.5. Run user story tests
 
