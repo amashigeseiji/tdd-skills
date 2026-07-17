@@ -18,7 +18,7 @@ const CONTEXT_NULL_DOMAINS = ['pattern', 'ui-pattern', 'design-token'];
 const HEURISTIC_REQUIRED_DOMAINS = ['pattern', 'ui-pattern'];
 const RELATION_TYPES = ['contains', 'belongs_to', 'references'];
 const WIP_STATUSES = ['new', 'redefine'];
-const ENTRY_FIELDS = ['name', 'en', 'context', 'domain', 'definition', 'relations', 'src', 'heuristic', 'components', 'states', 'wip'];
+const ENTRY_FIELDS = ['name', 'en', 'context', 'domain', 'definition', 'relations', 'src', 'heuristic', 'components', 'states', 'affordances', 'wip'];
 const CONTEXT_FIELDS = ['dir', 'name', 'description', 'primary_users', 'in_scope', 'out_of_scope'];
 
 function findMetaRepo() {
@@ -234,6 +234,12 @@ function validateEntry(entry, { knownDirs, targetIsStable }) {
   if (entry.states !== undefined) {
     if (!Array.isArray(entry.states) || entry.states.some((s) => !isNonEmptyString(s))) {
       errors.push(`${label}: states は非空文字列の配列にする`);
+    }
+  }
+
+  if (entry.affordances !== undefined) {
+    if (!Array.isArray(entry.affordances) || entry.affordances.some((s) => !isNonEmptyString(s))) {
+      errors.push(`${label}: affordances は非空文字列の配列にする`);
     }
   }
 

@@ -259,101 +259,44 @@ If non-loadable nodes exist, decide between these 2 options before proceeding:
 
 "Copy logic into the test file to verify" is not an option.
 
-**Pattern matching (パターン照合):**
+**構造パターン照合手続き（共通）:**
 
-Observe the shape of the finalized tree and check whether any structural pattern applies.
+対象の形状を観察し、既知の構造パターンが当てはまるか確認する。以下は「パターン照合」
+（対象＝ツリー形状、domain=`pattern`）と、後述の「UIパターン照合」（対象＝`ui` エントリの
+関係の形状、domain=`ui-pattern`）の両方から呼ばれる共通手続き。
 
-First, look up existing pattern entries in the dictionary:
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=pattern <plans_dir>
-```
-
-For each entry with a `heuristic` field, check whether the test tree matches it.
-
-If no pattern entries exist in the dictionary yet, use these built-in heuristics as fallback:
-- 複数の状態ノードがあり条件によって遷移している → StateMachine 候補
-- ノードが一方向に連なり前の出力が次の入力になっている → Pipeline 候補
-- 一つのイベントに複数のノードが反応している → Observer 候補
-
-After checking known patterns, also consider whether the tree suggests a pattern not yet in the dictionary. Both AI and human can propose candidates at this point.
-
-For each candidate (known or novel):
-1. Restructure the tree draft using the pattern's vocabulary
-2. Present the original and restructured trees side by side
-3. Ask the user: does the restructured tree have better clarity?
-4. If adopted, present the entry content following the **vocabulary registration rule**
-   (table + approval — the tree comparison in step 2 does not substitute for it, since it
-   shows neither the definition nor the heuristic), then register in `plans/<project>/dictionary.json`:
+1. 既存のパターンエントリを辞書で検索する:
    ```bash
-   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
-   {"name":"<パターン名>","en":"PatternName","context":null,"domain":"pattern","definition":"...","heuristic":"..."}
-   EOF
+   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=<domain> <plans_dir>
    ```
-   The `wip` field is attached automatically. For novel patterns, also add `components` with role descriptions.
+2. `heuristic` フィールドを持つ各エントリについて、対象がそれに一致するか確認する。
+   `domain=pattern` で辞書にまだエントリがない場合は、次のビルトインヒューリスティックを
+   フォールバックとして使う:
+   - 複数の状態ノードがあり条件によって遷移している → StateMachine 候補
+   - ノードが一方向に連なり前の出力が次の入力になっている → Pipeline 候補
+   - 一つのイベントに複数のノードが反応している → Observer 候補
+3. 既知パターンの確認後、辞書にまだない新規パターンを対象が示唆していないかも検討する。
+   AI・人間どちらも候補を提案できる。
+4. 候補ごと（既知・新規問わず）:
+   a. パターンの語彙で対象を再構成した案を作る
+   b. 元の形と再構成案を並べて提示する
+   c. ユーザーに再構成案の方が明確かどうか確認する
+   d. 採用されたら、**語彙登録ルール**（表＋承認 — 再構成案の提示はこの代わりにならない。
+      定義とヒューリスティックを示していないため）に従って提示し、登録する:
+      ```bash
+      node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
+      {"name":"<パターン名>","en":"<PatternName>","context":null,"domain":"<domain>","definition":"...","heuristic":"..."}
+      EOF
+      ```
+      `wip` フィールドは自動付与される。新規パターンや役割分担があるものには `components`
+      （役割名の配列）も付ける。
+5. どの候補も当てはまらなければそのまま進める。
 
-If no pattern fits, proceed as-is.
+**パターン照合 (パターンマッチング):** ツリーの形状を対象に、上の**構造パターン照合手続き**を
+domain=`pattern` で実行する。
 
-**UI intent check (UI意図の確認):**
-
-problem.md cannot carry UI design intent — it is solution-domain language by the problem/solution
-split. Without a place to elicit it, UI-facing nodes get implemented with arbitrary choices. This
-step is that place.
-
-For each node that faces the user directly (a screen, a button, a list, anything a user sees or
-operates), ask the user what UI it should be — which component, and what structural role it plays.
-Do not invent this yourself; if the user has no specific intent for a node, leave it to a reasonable
-default and move on.
-
-For nodes with a settled intent, present them following the **vocabulary registration rule** (table
-+ approval) and register as `domain: "ui"` entries in `plans/<project>/dictionary.json`:
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
-{"name":"<UI概念名>","en":"<UIConceptName>","context":"<dir>","domain":"ui",
- "definition":"...",
- "relations":[{"type":"references","target":"<対象概念>","note":""}]}
-EOF
-```
-
-Use `relations: references` for a handle onto a concept (e.g., a delete button referencing the
-concept it deletes), and `relations: contains` for a container that groups other `ui` entries
-(e.g., a header containing an action area). Do not encode spatial position (left/right, top/bottom)
-— only structural/role relationships belong here.
-
-If a `ui` entry only makes sense while the concept it references is in a particular state (e.g., a
-"unpublish" button that only shows while the article is published), and that concept's dictionary
-entry does not yet have a `states` field, add one listing the concept's full state set. Reference
-the relevant state from the `ui` entry's `relations[].note` — do not duplicate the state list on
-the `ui` entry itself.
-
-After registering the `ui` entries for this tree, check for a UI-pattern match the same way pattern
-matching works above, but against the shape of the registered `ui` entries' relations (not the
-tree):
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=ui-pattern <plans_dir>
-```
-
-For each entry with a `heuristic` field, check whether the accumulated `ui` entries and their
-relations match it (e.g., one `ui` entry lists many instances of a concept while another shows a
-single instance of the same concept — a master-detail candidate). If adopted, present the entry
-content following the **vocabulary registration rule**, then register:
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
-{"name":"<UIパターン名>","en":"<UIPatternName>","context":null,"domain":"ui-pattern",
- "definition":"...","heuristic":"...",
- "components":[{"name":"<役割名（例: マスターペイン）>","role":"..."}]}
-EOF
-```
-
-Registered `ui` entries do not get a `src` here — that is confirmed during the walkthrough (step 7.5),
-the same as application/solution domain entries, and is also where the wiring to the referenced
-concept(s) gets checked mechanically.
-
-If no node in this tree faces the user, or the user has no specific UI intent to give, skip this
-check.
+ツリーはここまで一貫して手段（UIを含む）に依存しない。UIというシグニファイアの命名は、機械の分解
+ではなく、機械を実際にエントリーポイントへ組み込む合成の最終段階（ステップ8）で行う。
 
 **After decomposition, present the tree to the user and get confirmation before proceeding.**
 
@@ -566,7 +509,7 @@ First create a correspondence table:
 記事                      | -                 | -                        | Article（型定義あり）
 ```
 
-6 points to verify:
+Points to verify:
 
 - **Vocabulary → test**: Does the name registered in the vocabulary appear in `describe()`?
   Names that disappeared were "quietly resolved" — record in findings.
@@ -584,28 +527,11 @@ First create a correspondence table:
   EOF
   ```
   Also verify it matches the file placement decided during the module boundary check in step 4.
-  This applies to `ui` domain entries from step 4 as well. Multiple `ui` entries may share the same
-  `src` when the UI part was not independently modularized (a framework's partial mechanism gives an
-  independent file; inline sub-components do not) — record the sharing plainly, it is not an error,
-  but see the next point for what it costs.
-- **UI → 依存関係の機械チェック（配線確認）**: For each `domain: "ui"` entry from step 4 whose `src` is
-  not shared with another entry (independently modularized), confirm mechanically that the
-  implementation is actually wired to the concept(s) declared in its `relations` — not just that the
-  file exists. Requires the same `depgraph.regen` setting as the isolated-node check below; skip with a
-  note in findings if absent.
-  1. Add `@vocab: <ui-name>` to the `ui` entry's `src` file (same annotation convention as other domains)
-  2. Regenerate the graph if not already done this step: `<depgraph.regen>`
-  3. Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui-entryのsrc>`
-     and check whether the `src` of each `references`/`contains` target appears in the result
-  4. If a target's `src` does not appear, decide: the implementation is missing the wiring (fix it), or
-     the `relations` declared in step 4 no longer match what was built (correct the entry via
-     `dict-write.js update`)
-  If a `ui` entry's `src` is shared with another `ui` entry or its container, skip this check for that
-  entry and note in findings that module granularity made the check inapplicable — this is an accepted
-  tradeoff (see rationale.md), not a defect.
-- **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for `depgraph.regen`.
-  If absent, skip this point and note in findings that the check was skipped (mention `/tdd-scaffold depgraph` as an opt-in setup).
-  If present:
+  (`ui` domain entries do not exist at this point — they are registered in step 8, during
+  integration, and checked there.)
+- **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for
+  `depgraph.regen`. If absent, skip this point and note in findings that the check was skipped
+  (mention `/tdd-scaffold depgraph` as an opt-in setup). If present:
   1. For the file(s) just implemented, resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see the note above)
   2. If `depgraph.scope` is set and a file matches none of its globs, that file is **outside graph
      coverage** (e.g., a language the graph tool cannot analyze) — skip it and note in findings
@@ -623,35 +549,73 @@ Don't stop at test green. Bring the changes to an **actually usable state**:
 - Run the actual app and confirm end-to-end operation
 - If integration requires judgment but information is lacking, integrate with a reasonable default and leave a note in findings
 
-**UI intent conformance check（登録したUI意図との整合確認）:**
+**UI要素の命名と再利用（エントリーポイントがUIのとき）:**
 
-Wiring — whether a `ui` entry actually depends on the concept it declared via `relations` — is checked
-mechanically in step 7.5. This check covers what that check cannot see: appearance and states-dependent
-behavior, which only show up once the app actually runs.
+UIは機械（できるツリー）を人間に開くシグニファイアで、機械の分解には属さない。ここ——実際にエント
+リーポイントへ組み込む瞬間——で初めて実体を持つ。ここでの手続きは「意図を確認する」ことではなく、
+シグニファイアの命名と再利用であることに注意する。既存のもので足りるかを先に確認し、足りないときだ
+け新しく名付ける。
 
-Look up the `ui` entries registered for this tree:
+画面・ボタン・リストなど、ユーザーが直接触れる部品をエントリーポイントに組み込むたびに:
 
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=ui <plans_dir>
-```
+1. **再利用の確認** — 同じ・類似のシグニファイアがすでにないか検索する:
+   ```bash
+   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=ui <plans_dir>
+   ```
+   既存のもので足りるなら、新しく作らずそれを使う。
+2. **トンマナの適用** — その部品の役割（破壊的操作・主要操作など）に対応する `design-token` エント
+   リを検索する:
+   ```bash
+   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=design-token <plans_dir>
+   ```
+   該当するトークンがあれば、リテラルな色・px値を直接書く代わりにそれを参照する実装にする。
+3. **命名・登録** — 再利用できない新規の部品は、実装と同時に**語彙登録ルール**（表＋承認）に従って
+   `domain: "ui"` として登録する:
+   ```bash
+   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
+   {"name":"<UI概念名>","en":"<UIConceptName>","context":"<dir>","domain":"ui",
+    "definition":"...",
+    "relations":[{"type":"references","target":"<対象概念>","note":""}]}
+   EOF
+   ```
+   `relations: references` は概念への操作ハンドルとしての参照に使う（例: 削除ボタンが記事を参照す
+   る）。`relations: contains` はハンドルの合成に使う——複数の操作ハンドルが合成されてより大きな
+   操作ハンドルになる関係で（例: 入力ハンドルと送信ハンドルが合成されて投稿フォームになる）、器が
+   中身を保持する関係ではない。空間的な配置（左右・上下）は書かない。手順2でdesign-tokenを適用した
+   場合も`relations: references`で繋ぐ。
 
-While running the actual app, for each entry:
-- Confirm the component/structural role matches what was registered (handle via `references`, container
-  via `contains`)
-- If `relations[].note` ties the entry to a state, confirm the state-conditional display actually
-  behaves as intended (e.g., a "publish" button that only appears while the article is unpublished)
+   **命名の基準**: エントリーポイントそのもの（画面・ページ等、合成の起点）は、できるツリーのroot X
+   と同じ理由——分解・合成の起点だから——で常に登録する。それ以外の中間の複合ハンドル（フォーム等）
+   は再利用可能性が基準になる。いまの文脈から切り離して他所でも使えるときに名付け、文脈固有で使い
+   回さないなら辞書には登録せず実装内の無名の構成のままでよい。
 
-If the running UI diverges from the registered intent:
-- If it is an implementation bug, fix the implementation.
-- If the intent itself changed while building (a better UI emerged through implementation), present the
-  change following the **vocabulary registration rule**, then update the entry:
-  ```bash
-  node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <UI概念名> <<'EOF'
-  { "definition": "...", "relations": [...] }
-  EOF
-  ```
+   概念が特定の状態のときだけ意味をなす場合（例: 記事が公開中のときだけ表示される「非公開化」ボタ
+   ン）、その概念の辞書エントリに `states` フィールドがなければ状態の全集合を追加し、`relations[].note`
+   で該当状態を参照する（`ui`エントリ側に状態リストを複製しない）。
 
-If no `ui` entries were registered for this tree in step 4, skip this check.
+   概念のどの操作を起動するかを明示したい場合（`references`だけでは「記事」を指すだけで、削除・編集
+   のどちらを起動するかが曖昧になる）、その概念の辞書エントリに `affordances` フィールドがなければ
+   操作の一覧を追加し、`relations[].note`で該当する操作を参照する（`ui`エントリ側に操作名を複製し
+   ない）。`affordances`はできるツリーの装置分割とは独立した、ドメイン言語としての操作一覧であり、
+   実際にどの装置が実現しているかは別途`src`/`@vocab`の機械チェックで追跡する。
+4. **配線の機械チェック** — 登録した`ui`エントリの`src`が、`relations`で宣言した参照先に実際に依存
+   しているか確認する。`.claude/tdd/config.json` の `depgraph.regen` を確認し、なければこの点をスキ
+   ップしてfindingsに記録する。あれば:
+   - `@vocab: <ui-name>` を`ui`エントリの`src`ファイルに追加する（他ドメインと同じ注釈規約）
+   - `<depgraph.regen>` を実行して `<depgraph.graph>` を生成する
+   - `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui-entryのsrc>`
+     を実行し、`references`/`contains`の対象先の`src`が結果に含まれるか確認する
+   - 含まれなければ、配線漏れ（実装を直す）か、`relations`が実態と合わなくなった（`dict-write.js
+     update`で直す）かを判断する
+   - `ui`エントリの`src`が合成先の複合ハンドルと共有されている（独立してモジュール化されていない）
+     場合はこの点をスキップし、モジュール粒度のためチェック対象外だったとfindingsに記録する（欠陥
+     ではない、see rationale.md）
+5. **UIパターン照合** — このエントリーポイントに複数の`ui`エントリが蓄積したら、**構造パターン照合手
+   続き**をdomain=`ui-pattern`で実行し、master-detail等の構造的再利用がないか確認する（例: 単一概
+   念の複数インスタンスを列挙する`ui`エントリと、その単一インスタンスを表示する`ui`エントリが揃って
+   いる）。
+
+このエントリーポイントにユーザーが直接触れる部品がない場合、この手続き全体をスキップする。
 
 ### 8.5. Run user story tests
 
