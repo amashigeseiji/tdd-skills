@@ -2,6 +2,20 @@
 
 ## 2026-07-17
 
+### Added
+- **辞書に `ui`/`ui-pattern`/`design-token` の3ドメインと `states` フィールドを追加** —
+  UIの意図を書く場所がなく、problem.md には解決手段として書けず、tdd-run にも確認ステップが
+  ないためUI実装が行き当たりばったりになっていた。既存の辞書ドメイン機構（`application`/
+  `solution`/`pattern`）を拡張する形で、UI部品・UI構造パターン・トンマナ規約を語彙として
+  安定させられるようにした。
+- **`tdd-run` にUI意図確認・UIパターン照合ステップを追加**（ステップ4） — ツリー分解時に
+  UIに面するノードのUI意図をユーザーに確認し、`domain: "ui"` として登録する。登録した
+  `ui` エントリー同士の関係から `ui-pattern`（master-detail等）を照合する、既存のパターン
+  照合と対になるステップ。
+- **`/tdd-vocab init` に design-token 初期抽出ステップを追加** — 既存のCSS/テーマファイルと
+  その使用箇所から、意味づけられたトンマナ規約（例: 削除系は警告色）を抽出して
+  `docs/dictionary.json` に書く。生の色数値は含めない。
+
 ### Changed
 - **dict-search.js の検索結果に wip.status を表示** — plans 側のエントリが wip（作業仮説）か
   どうかが `-s`/`-d1` の出力からは分からず、昇格（promote）すべきかの判断のために辞書ファイルを

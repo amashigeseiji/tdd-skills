@@ -294,6 +294,63 @@ For each candidate (known or novel):
 
 If no pattern fits, proceed as-is.
 
+**UI intent check (UI意図の確認):**
+
+problem.md cannot carry UI design intent — it is solution-domain language by the problem/solution
+split. Without a place to elicit it, UI-facing nodes get implemented with arbitrary choices. This
+step is that place.
+
+For each node that faces the user directly (a screen, a button, a list, anything a user sees or
+operates), ask the user what UI it should be — which component, and what structural role it plays.
+Do not invent this yourself; if the user has no specific intent for a node, leave it to a reasonable
+default and move on.
+
+For nodes with a settled intent, present them following the **vocabulary registration rule** (table
++ approval) and register as `domain: "ui"` entries in `plans/<project>/dictionary.json`:
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
+{"name":"<UI概念名>","en":"<UIConceptName>","context":"<dir>","domain":"ui",
+ "definition":"...",
+ "relations":[{"type":"references","target":"<対象概念>","note":""}]}
+EOF
+```
+
+Use `relations: references` for a handle onto a concept (e.g., a delete button referencing the
+concept it deletes), and `relations: contains` for a container that groups other `ui` entries
+(e.g., a header containing an action area). Do not encode spatial position (left/right, top/bottom)
+— only structural/role relationships belong here.
+
+If a `ui` entry only makes sense while the concept it references is in a particular state (e.g., a
+"unpublish" button that only shows while the article is published), and that concept's dictionary
+entry does not yet have a `states` field, add one listing the concept's full state set. Reference
+the relevant state from the `ui` entry's `relations[].note` — do not duplicate the state list on
+the `ui` entry itself.
+
+After registering the `ui` entries for this tree, check for a UI-pattern match the same way pattern
+matching works above, but against the shape of the registered `ui` entries' relations (not the
+tree):
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=ui-pattern <plans_dir>
+```
+
+For each entry with a `heuristic` field, check whether the accumulated `ui` entries and their
+relations match it (e.g., one `ui` entry lists many instances of a concept while another shows a
+single instance of the same concept — a master-detail candidate). If adopted, present the entry
+content following the **vocabulary registration rule**, then register:
+
+```bash
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
+{"name":"<UIパターン名>","en":"<UIPatternName>","context":null,"domain":"ui-pattern",
+ "definition":"...","heuristic":"...",
+ "components":[{"name":"<役割名（例: マスターペイン）>","role":"..."}]}
+EOF
+```
+
+If no node in this tree faces the user, or the user has no specific UI intent to give, skip this
+check.
+
 **After decomposition, present the tree to the user and get confirmation before proceeding.**
 
 Once confirmed, first generate `plans/<project>/test-tree.md`.
