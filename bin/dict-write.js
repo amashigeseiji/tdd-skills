@@ -13,10 +13,12 @@
 import fs from 'fs';
 import path from 'path';
 
-const DOMAINS = ['application', 'solution', 'pattern'];
+const DOMAINS = ['application', 'solution', 'pattern', 'ui', 'ui-pattern', 'design-token'];
+const CONTEXT_NULL_DOMAINS = ['pattern', 'ui-pattern', 'design-token'];
+const HEURISTIC_REQUIRED_DOMAINS = ['pattern', 'ui-pattern'];
 const RELATION_TYPES = ['contains', 'belongs_to', 'references'];
 const WIP_STATUSES = ['new', 'redefine'];
-const ENTRY_FIELDS = ['name', 'en', 'context', 'domain', 'definition', 'relations', 'src', 'heuristic', 'components', 'wip'];
+const ENTRY_FIELDS = ['name', 'en', 'context', 'domain', 'definition', 'relations', 'src', 'heuristic', 'components', 'states', 'affordances', 'wip'];
 const CONTEXT_FIELDS = ['dir', 'name', 'description', 'primary_users', 'in_scope', 'out_of_scope'];
 
 function findMetaRepo() {
@@ -199,12 +201,14 @@ function validateEntry(entry, { knownDirs, targetIsStable }) {
     errors.push(`${label}: domain は ${DOMAINS.join(' | ')} のいずれか（現在: ${JSON.stringify(entry.domain)}）`);
   }
 
-  if (entry.domain === 'pattern') {
-    if (entry.context !== null) errors.push(`${label}: pattern エントリの context は null にする（現在: ${JSON.stringify(entry.context)}）`);
-    if (!isNonEmptyString(entry.heuristic)) errors.push(`${label}: pattern エントリには heuristic が必要です`);
+  if (CONTEXT_NULL_DOMAINS.includes(entry.domain)) {
+    if (entry.context !== null) errors.push(`${label}: ${entry.domain} エントリの context は null にする（現在: ${JSON.stringify(entry.context)}）`);
+    if (HEURISTIC_REQUIRED_DOMAINS.includes(entry.domain) && !isNonEmptyString(entry.heuristic)) {
+      errors.push(`${label}: ${entry.domain} エントリには heuristic が必要です`);
+    }
   } else {
     if (!isNonEmptyString(entry.context)) {
-      errors.push(`${label}: context が必要です（pattern 以外は null 不可）`);
+      errors.push(`${label}: context が必要です（${CONTEXT_NULL_DOMAINS.join('/')} 以外は null 不可）`);
     } else if (!knownDirs.has(entry.context)) {
       errors.push(`${label}: context "${entry.context}" が定義されていません（contexts に追加するか既存の dir を使う）`);
     }
@@ -225,6 +229,18 @@ function validateEntry(entry, { knownDirs, targetIsStable }) {
 
   if (entry.components !== undefined && !Array.isArray(entry.components)) {
     errors.push(`${label}: components は配列にする`);
+  }
+
+  if (entry.states !== undefined) {
+    if (!Array.isArray(entry.states) || entry.states.some((s) => !isNonEmptyString(s))) {
+      errors.push(`${label}: states は非空文字列の配列にする`);
+    }
+  }
+
+  if (entry.affordances !== undefined) {
+    if (!Array.isArray(entry.affordances) || entry.affordances.some((s) => !isNonEmptyString(s))) {
+      errors.push(`${label}: affordances は非空文字列の配列にする`);
+    }
   }
 
   if (entry.wip !== undefined) {
@@ -634,7 +650,8 @@ add:
 
 update:
   渡したフィールドだけを差し替える。フィールドに null を渡すと削除する
-  （例: {"wip": null}）。pattern エントリは --context null で特定する。
+  （例: {"wip": null}）。context が null のドメイン（pattern / ui-pattern / design-token）の
+  エントリは --context null で特定する。
 
 promote:
   plans → docs へ移動し wip を除去する。安定層の整合性を守るため、

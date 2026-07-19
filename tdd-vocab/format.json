@@ -14,16 +14,18 @@
     "name": "<概念名（日本語）>",
     "en": "<EnglishName（概念名の直訳を PascalCase で。例: テンプレートマッチャー → TemplateMatcher）>",
     "context": "<context.dir>",
-    "domain": "application | solution | pattern",
+    "domain": "application | solution | pattern | ui | ui-pattern | design-token",
     "definition": "<何であるか。他の辞書概念は #概念名 記法で参照する（#で始まり半角スペースで終わる。文末・句点の前も #概念名 。のようにスペースを挟む）>",
     "relations": [
       {
-        "_type_options": "contains（このエントリがライフサイクルを統括する下位概念）| belongs_to（このエントリを統括する上位概念）| references（ライフサイクルが別で横断的に参照する概念）",
+        "_type_options": "contains（このエントリがライフサイクルを統括する下位概念。ui ドメインでは複数の操作ハンドルが合成されてより大きな操作ハンドルになる関係でも使う。器が中身を保持する関係ではない）| belongs_to（このエントリを統括する上位概念）| references（ライフサイクルが別で横断的に参照する概念。ui ドメインでは概念への操作ハンドルとしての参照でも使う）",
         "type": "contains | belongs_to | references",
         "target": "<概念名>",
-        "note": "<補足>"
+        "note": "<補足。ui エントリが対象概念の特定の states / affordances のときだけ関係する場合はここに書く（例: '削除する（公開中のときのみ表示）'）>"
       }
     ],
+    "states": "<任意。概念が取りうる状態の配列（例: [\"公開中\", \"非公開\"]）。application/solution の概念エントリにのみ持たせる。ui エントリ側には複製せず、relations の note で参照する>",
+    "affordances": "<任意。概念が許す操作の配列（例: [\"削除する\", \"編集する\"]）。application/solution の概念エントリにのみ持たせる。実装上の装置分割とは独立した、ドメイン言語としての操作一覧。ui エントリ側には複製せず、relations の note で参照する>",
     "src": "src/<dir>/<file>.js",
     "_src_note": "tdd-vocab は書き込まない。tdd-run の7.5（実装確定後）が書く代表1ファイルの簡易キャッシュ。ソリューションドメインかつ実装確定済みのエントリにのみ値が入り、アプリケーションドメインや未実装のエントリでは null のまま。複数ファイルにまたがる正式なリンクは実装側の @vocab アノテーション（多対多、tdd-vocab check で整合性チェックされる）。概念の実装箇所を確実に知りたければ @vocab を grep する",
     "_cross_context_relation": {
@@ -35,16 +37,21 @@
   },
 
   "pattern_entry": {
+    "_note": "domain: pattern と domain: ui-pattern は同じ形。heuristic の照合対象が違う——pattern はテストツリーの形、ui-pattern は ui エントリ同士の relations の形。",
     "name": "<パターン名>",
     "en": "<PatternName>",
     "context": null,
-    "domain": "pattern",
+    "domain": "pattern | ui-pattern",
     "definition": "<パターンの説明>",
-    "heuristic": "<tdd-run がテストツリーと照合する手がかり。必須>",
+    "heuristic": "<tdd-run が照合する手がかり。必須。pattern はテストツリーの形、ui-pattern は ui エントリの relations の形を対象にする>",
     "components": [
-      { "name": "<構成要素名>", "role": "<役割>" }
+      { "name": "<構成要素名（ui-pattern では役割名。例: マスターペイン）>", "role": "<役割>" }
     ]
   },
+
+  "_ui_note": "domain: ui は専用テンプレートを持たない（entry と同じ形）。エントリーは常に操作ハンドルである。概念を references すること（対象概念を指す）と、他の操作ハンドルから合成されること（relations に contains で部品ハンドルを持つ。器が中身を保持する関係ではない）の両方がありうる。複合ハンドルは、いまの文脈から切り離して他所でも使えるときに名付ける。空間的な配置（左右・上下等）は書かない——構造的な役割分けは ui-pattern の components が担う。",
+
+  "_design_token_note": "domain: design-token は entry と同じ形、context は null。「削除系は警告色」のような意味づけられたトンマナ規約を書く。生の色数値・px値は含めない。プロジェクト全体で横断的に使われるため、tdd-run ではなく /tdd-vocab init で初期抽出し、以降は明示的な見直しなしに使い回す。",
 
   "wip_fields": {
     "new": {
