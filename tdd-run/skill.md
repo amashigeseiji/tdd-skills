@@ -409,7 +409,7 @@ EOF
 The `wip` field is attached automatically. Validation errors reject the whole write — fix the input and rerun.
 Exclude: root nodes, concepts already registered as application domain vocabulary, implementation-detail subdivisions.
 
-The correspondence between application domain concepts and these will be confirmed during the walkthrough (step 7.5).
+The correspondence between application domain concepts and these will be confirmed during the walkthrough (step 9).
 
 ### 5. Implement from leaves upward, composing as you go
 
@@ -467,7 +467,7 @@ When registering something new, search existing concepts with `dict-search.js -s
 **Types and function signatures:**
 Attaching types to arguments and return values is the default posture. Types arise both from function relationships and vocabulary relationships.
 
-Finalize the fields of type stubs from step 4 as implementation reveals what they should be. Don't leave them until 7.5.
+Finalize the fields of type stubs from step 4 as implementation reveals what they should be. Don't leave them until step 9.
 
 When you notice the following while writing argument types, extract as a named type:
 - The same argument shape appears in multiple functions
@@ -490,55 +490,7 @@ When you notice during implementation that the nature of an upper node's "can do
 Once composition is complete, confirm the test from step 3 turns green.
 
 When green, ask the user for confirmation.
-If the user accepts, proceed to step 7.5.
-
-### 7.5. Dictionary / test / implementation walkthrough
-
-Confirm names are consistent across phases and update `plans/<project>/dictionary.json`.
-Dictionary updates in this step go through `dict-write.js` (`add` for new entries, `update` for
-existing ones — `update` replaces only the fields you pass; arrays like `relations` are replaced whole).
-
-First create a correspondence table:
-
-```
-語彙（plans/dictionary）  | テスト describe()  | 実装（関数・モジュール名）| 型定義
---------------------------|-------------------|--------------------------|-------
-ツリービルダー             | なし               | buildTree()              | なし（装置）
-ネスト変換                 | ✓                 | buildTree() 内部         | なし
-ツリーレンダラー           | ✓                 | renderTreeHtml()         | なし（装置）
-記事                      | -                 | -                        | Article（型定義あり）
-```
-
-Points to verify:
-
-- **Vocabulary → test**: Does the name registered in the vocabulary appear in `describe()`?
-  Names that disappeared were "quietly resolved" — record in findings.
-- **Test → implementation**: Does the subject name in `describe()` match the function/module/class name in implementation?
-  Names should have been fixed by scaffolding in step 4, so divergence here means a conversion happened at that stage.
-  If divergence is found, record in findings and fix the implementation to the correct name.
-  If matching, add implementation references to the `relations` field of the corresponding entry in `plans/<project>/dictionary.json`.
-- **Implementation → vocabulary**: Among device names that appear in implementation, consider adding any unregistered ones.
-- **Vocabulary → type**: Does a type definition corresponding to data concept vocabulary entries exist?
-  If not, define it there. If there was a type stub from step 4, fill in fields confirmed by implementation.
-- **Vocabulary → src**: Write the confirmed implementation path into the `"src"` field of each vocabulary entry:
-  ```bash
-  node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <概念名> <<'EOF'
-  { "src": "src/<dir>/<file>.js" }
-  EOF
-  ```
-  Also verify it matches the file placement decided during the module boundary check in step 4.
-  (`ui` domain entries do not exist at this point — they are registered in step 8, during
-  integration, and checked there.)
-- **Implementation → dependency graph (isolated-node check)**: Check `.claude/tdd/config.json` for
-  `depgraph.regen`. If absent, skip this point and note in findings that the check was skipped
-  (mention `/tdd-scaffold depgraph` as an opt-in setup). If present:
-  1. For the file(s) just implemented, resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see the note above)
-  2. If `depgraph.scope` is set and a file matches none of its globs, that file is **outside graph
-     coverage** (e.g., a language the graph tool cannot analyze) — skip it and note in findings
-     that the check did not apply, NOT that the node is isolated
-  3. Regenerate the graph: `<depgraph.regen>` (writes `<depgraph.graph>`)
-  4. Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>` and check whether any result matches one of the `entry_points` globs
-  5. If none match, the node is isolated from composition — record it in findings as a false-negative risk (see "Test and module design")
+If the user accepts, proceed to step 8.
 
 ### 8. Integration and behavior verification (make it usable)
 
@@ -597,37 +549,81 @@ UIは機械（できるツリー）を人間に開くシグニファイアで、
    のどちらを起動するかが曖昧になる）、その概念の辞書エントリに `affordances` フィールドがなければ
    操作の一覧を追加し、`relations[].note`で該当する操作を参照する（`ui`エントリ側に操作名を複製し
    ない）。`affordances`はできるツリーの装置分割とは独立した、ドメイン言語としての操作一覧であり、
-   実際にどの装置が実現しているかは別途`src`/`@vocab`の機械チェックで追跡する。
-4. **配線の機械チェック** — 登録した`ui`エントリの`src`が、`relations`で宣言した参照先に実際に依存
-   しているか確認する。`.claude/tdd/config.json` の `depgraph.regen` を確認し、なければこの点をスキ
-   ップしてfindingsに記録する。あれば:
-   - `@vocab: <ui-name>` を`ui`エントリの`src`ファイルに追加する（他ドメインと同じ注釈規約）
-   - `<depgraph.regen>` を実行して `<depgraph.graph>` を生成する
-   - `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui-entryのsrc>`
-     を実行し、`references`/`contains`の対象先の`src`が結果に含まれるか確認する
-   - 含まれなければ、配線漏れ（実装を直す）か、`relations`が実態と合わなくなった（`dict-write.js
-     update`で直す）かを判断する
-   - `ui`エントリの`src`が合成先の複合ハンドルと共有されている（独立してモジュール化されていない）
-     場合はこの点をスキップし、モジュール粒度のためチェック対象外だったとfindingsに記録する（欠陥
-     ではない、see rationale.md）
-5. **UIパターン照合** — このエントリーポイントに複数の`ui`エントリが蓄積したら、**構造パターン照合手
+   実際にどの装置が実現しているかは別途`src`/`@vocab`の機械チェックで追跡する（配線そのものの機械
+   チェックはステップ9で行う）。
+4. **UIパターン照合** — このエントリーポイントに複数の`ui`エントリが蓄積したら、**構造パターン照合手
    続き**をdomain=`ui-pattern`で実行し、master-detail等の構造的再利用がないか確認する（例: 単一概
    念の複数インスタンスを列挙する`ui`エントリと、その単一インスタンスを表示する`ui`エントリが揃って
    いる）。
 
 このエントリーポイントにユーザーが直接触れる部品がない場合、この手続き全体をスキップする。
 
-### 8.5. Run user story tests
+### 9. Dictionary / test / implementation walkthrough and user story verification
 
-Once integration and behavior verification are complete, run `/tdd-userstory run <project>`.
+Once integration (step 8) is complete, confirm names and wiring are consistent across phases and
+update `plans/<project>/dictionary.json`. Dictionary updates in this step go through `dict-write.js`
+(`add` for new entries, `update` for existing ones — `update` replaces only the fields you pass;
+arrays like `relations` are replaced whole).
+
+First create a correspondence table:
+
+```
+語彙（plans/dictionary）  | テスト describe()  | 実装（関数・モジュール名）| 型定義
+--------------------------|-------------------|--------------------------|-------
+ツリービルダー             | なし               | buildTree()              | なし（装置）
+ネスト変換                 | ✓                 | buildTree() 内部         | なし
+ツリーレンダラー           | ✓                 | renderTreeHtml()         | なし（装置）
+記事                      | -                 | -                        | Article（型定義あり）
+```
+
+Points to verify:
+
+- **Vocabulary → test**: Does the name registered in the vocabulary appear in `describe()`?
+  Names that disappeared were "quietly resolved" — record in findings.
+- **Test → implementation**: Does the subject name in `describe()` match the function/module/class name in implementation?
+  Names should have been fixed by scaffolding in step 4, so divergence here means a conversion happened at that stage.
+  If divergence is found, record in findings and fix the implementation to the correct name.
+  If matching, add implementation references to the `relations` field of the corresponding entry in `plans/<project>/dictionary.json`.
+- **Implementation → vocabulary**: Among device names that appear in implementation, consider adding any unregistered ones.
+- **Vocabulary → type**: Does a type definition corresponding to data concept vocabulary entries exist?
+  If not, define it there. If there was a type stub from step 4, fill in fields confirmed by implementation.
+- **Vocabulary → src**: Write the confirmed implementation path into the `"src"` field of each vocabulary entry —
+  including `ui` domain entries registered during integration in step 8:
+  ```bash
+  node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <概念名> <<'EOF'
+  { "src": "src/<dir>/<file>.js" }
+  EOF
+  ```
+  Also verify it matches the file placement decided during the module boundary check in step 4
+  (for `ui` entries, the file wired during integration in step 8).
+- **Implementation → dependency graph**: Check `.claude/tdd/config.json` for `depgraph.regen`.
+  If absent, skip this whole point and note in findings that the check was skipped (mention
+  `/tdd-scaffold depgraph` as an opt-in setup). If present, regenerate the graph once
+  (`<depgraph.regen>`, writes `<depgraph.graph>`), then run both checks against it:
+  1. **Isolated-node check (application/solution domain)** — for the file(s) implemented in steps 5–7:
+     - Resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see above)
+     - If `depgraph.scope` is set and a file matches none of its globs, that file is **outside graph
+       coverage** (e.g., a language the graph tool cannot analyze) — skip it and note in findings
+       that the check did not apply, NOT that the node is isolated
+     - Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>` and check whether any result matches one of the `entry_points` globs
+     - If none match, the node is isolated from composition — record it in findings as a false-negative risk (see "Test and module design")
+  2. **Wiring check (`ui` domain)** — for each `ui` entry registered in step 8:
+     - Add `@vocab: <ui-name>` to the entry's `src` file (same annotation convention as other domains), if not already present
+     - Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui-entryのsrc>` and check whether the `src` of each `references`/`contains` target appears in the result
+     - If not, decide between a wiring gap (fix the implementation) or a stale `relations` field (fix with `dict-write.js update`)
+     - If the `ui` entry's `src` is shared with a larger composed handle (not modularized independently), skip this point and note in findings that it was out of scope for module granularity (not a defect — see rationale.md)
+
+**Run user story tests:**
+
+Once the walkthrough above is done, run `/tdd-userstory run <project>`.
 Skip if `plans/<project>/user-story.md` does not exist.
 
 **Response by result:**
 
 | Result | Action |
 |--------|--------|
-| `pass` / `pending` | Proceed to step 9 |
-| `fail` (assertion failure) | Record failure details in findings.md and proceed to step 9 (see below) |
+| `pass` / `pending` | Proceed to step 10 |
+| `fail` (assertion failure) | Record failure details in findings.md and proceed to step 10 (see below) |
 | `execution-error` | Enter error handling loop (see below) |
 
 **When `execution-error` — handling loop (max 3 attempts):**
@@ -652,7 +648,7 @@ If `execution-error` is not resolved after 3 attempts:
 ユーザーストーリーテストをスキップして次のステップへ進みます。
 ```
 
-Record this in findings.md and proceed to step 9.
+Record this in findings.md and proceed to step 10.
 
 **Recording in findings.md:**
 
@@ -660,7 +656,7 @@ For `fail`: Write the failing scenario (US number, scenario name), expected vs a
 
 For `execution-error` (3-attempt stop): Write error type, last error message, and 3 attempted responses.
 
-### 9. Implementation observations
+### 10. Implementation observations
 
 Leave notes on what you noticed during implementation in `plans/<project>/observations.md`.
 **Routing (where to send back) is decided in tdd-feedback. Write only facts and observations here.**
