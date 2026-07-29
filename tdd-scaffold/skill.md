@@ -129,7 +129,7 @@ esac
 
 ## 依存グラフ生成アダプタ（`depgraph`）
 
-`tdd-run` の 7.5（ウォークスルー）や `tdd-vocab init`/`check` は依存グラフを
+`tdd-run` の突合や `tdd-vocab init`/`check` は依存グラフを
 `${CLAUDE_SKILL_DIR}/../bin/depgraph-search.js`（tdd-skills 同梱・全プロジェクト共通）で問い合わせる。
 このスクリプトは正規化済みの JSON（`{ "modules": [ { "source", "dependencies": [...] } ] }`、
 forward edge のみ）を読む前提で、`--to`/`--from`/`-d`/`-s` の展開・整形ロジックを持つ。**このロジック自体は
@@ -173,7 +173,7 @@ depgraph-regen.sh の責務は**この射影をその言語なりの方法で計
 
 **`scope`**: このグラフがカバーする範囲の宣言。regen が解析対象にしているディレクトリから
 機械的に決まる（例: `["bin/**", "lib/**", "src/**"]`）。多言語プロジェクトで一部の言語しか
-グラフ化できない場合、呼び出し側（tdd-run 7.5 等）は scope 外のファイルを「孤立」ではなく
+グラフ化できない場合、呼び出し側（tdd-run の突合等）は scope 外のファイルを「孤立」ではなく
 「グラフ対象外」として扱う。省略時は「プロジェクト全体をカバーしている」とみなす。
 `entry_points` は scope 内に含まれていること（含まれていなければ設定ミス）。
 

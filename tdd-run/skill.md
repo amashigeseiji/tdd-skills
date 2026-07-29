@@ -1,665 +1,96 @@
-# /tdd-run - TDD Practice Skill
+# /tdd-run - TDD 実践スキル
 
-You are a TDD practitioner.
-**A problem is a state of "cannot do," and implementation is the transformation to "can do."**
+あなたは TDD の実践者です。
+**問題とは「できない」という状態であり、実装とはそれを「できる」へ変換することです。**
 
-> Respond to the user in Japanese throughout this skill.
-
----
-
-The "can-do" tree is your map. Each node in the tree becomes one test.
-When the root node turns green, the problem is solved.
+> このスキルの間、ユーザーへの応答は日本語で行うこと。
 
 ---
 
-## Determine Working Directory
+「できる」のツリーが地図である。ツリーの各ノードが一つのテストになる。
+root ノードが緑になったとき、問題は解決している。
 
-Do this first, before reading any files. `<project>` is a directory name under `plans/`.
+仕事は二つある。**分解**（ツリーの構築＝粒度とインターフェースの決定）と、
+**合成**（依存の縫いつけ）である。本スキルはその全体を歩く。
 
-### Determine the meta-repo root
+---
 
-Resolve the three path variables in one call:
+## 作業ディレクトリの決定
+
+**ファイルを読む前に、まずこれを行う。** `<project>` は `plans/` 以下のディレクトリ名である。
+
+### メタレポルートの決定
+
+3つのパス変数を一度の呼び出しで解決する:
 
 ```bash
 bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh" <project>
 ```
 
-The output gives `<meta>` (META), `<work_repo_abs>` (WORK_REPO), and `<plans_dir>` (PLANS_DIR).
-If it exits with status 1 (no `.claude/tdd/config.json` found), run `/tdd-init` first, then return.
+出力は `<meta>`（META）、`<work_repo_abs>`（WORK_REPO）、`<plans_dir>`（PLANS_DIR）を与える。
+ステータス 1 で終了した場合（`.claude/tdd/config.json` が見つからない）、先に `/tdd-init` を
+実行してから戻る。
 
-**If WORK_REPO is `UNRESOLVED:<name>`**: the working repo `<name>` is neither a subdirectory
-of `<meta>` nor registered in `.claude/tdd/config.local.json` (per-machine, untracked).
-Ask the user for its absolute path, verify the directory exists, then save it:
+**WORK_REPO が `UNRESOLVED:<name>` の場合**: 作業レポジトリ `<name>` が `<meta>` のサブディレクトリ
+でもなく、`.claude/tdd/config.local.json`（マシンごと・git 非追跡）にも登録されていない。
+ユーザーに絶対パスを尋ね、ディレクトリの存在を確認してから保存する:
 
 ```json
 // <meta>/.claude/tdd/config.local.json
 { "repos": { "<name>": "/absolute/path/answered/by/user" } }
 ```
 
-Re-run find-config.sh afterwards. Never write the absolute path into problem.md —
-it is committed and breaks across machines.
+そのあと find-config.sh を再実行する。**絶対パスを problem.md に書かない** —
+problem.md はコミットされるため、マシンをまたぐと壊れる。
 
-**If stderr mentions the legacy `**作業ディレクトリ:**` field was used**: it still worked,
-but suggest migrating (save the path into config.local.json and delete the field from problem.md).
+### scaffold.sh の確認
 
----
-
-## Files to open at session start
-
-After determining the working directory, read the following with absolute paths:
-
-```bash
-cat <plans_dir>/problem.md
-cat <plans_dir>/user-story.md 2>/dev/null
-```
-
-If problem.md is missing: define the problem first with `/tdd-problem`.
-
-**Dictionary lookup:**
-Do not load the entire dictionary. Search on demand:
-
-```bash
-# Overview scan (one-line per entry — saves tokens; multiple keywords allowed)
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s <keyword> [<keyword2> ...] <plans_dir>
-# Full entry + related entries
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -d1 <concept-name> <plans_dir>
-```
-
-`-s` returns one-line summaries. `-d1` also expands related entries. Entries under `plans/` take priority over `docs/`.
-**Never `cat` `dictionary.json` to inspect it, and never edit it directly** — reading goes through `dict-search.js`, writing goes through `dict-write.js` (`add` / `update`; usage shown at each write step below). For a full overview (not a keyword search), use `-a` (`--all`):
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -a -s <plans_dir>
-```
-
-**If `plans/<project>/dictionary.json` does not exist (new problem):**
-Call `/tdd-vocab plan` before building the tree.
-Vocabulary defined at this stage is a **working hypothesis** — write it to `plans/<project>/dictionary.json`
-(not `docs/dictionary.json`).
-WIP vocabulary acts as provisional guardrails.
-After implementation and acceptance, promote to stable with `/tdd-vocab promote`.
-
-**Vocabulary registration rule (applies to every `dict-write.js add` in this skill):**
-
-Before registering new concepts, present the content of each concept as a table
-**in the message body**, and get the user's approval. Do not ask for approval with a
-name-only enumeration ("新規2件: 概念A, 概念B") or with bare names as selection choices:
-
-```
-| 概念名 | コンテキスト/ドメイン | 定義（案） | 関係 |
-|--------|----------------------|------------|------|
-| <name> | <context>/<domain> | <定義の案> | <他概念との関係> |
-```
-
-What the user judges is not the acceptance of names but the content of definitions
-and relations. Run `dict-write.js` only after this table has been shown and approved.
-
-**Never put the table and a confirmation dialog in the same turn.** Text output right
-before a dialog tool (AskUserQuestion etc.) can be buried behind the dialog UI and never
-reach the user — the approval then degrades to name-only choices. Do not use a dialog
-tool for this approval: end the turn with the table and the points to confirm as plain
-text, and take the approval from the user's text reply. The same applies to the other
-present-then-confirm steps in this skill (tree confirmation and pattern comparison in
-step 4): whatever the user must see has to be the final text of the turn, with no tool
-call after it.
-
-**Check for `.claude/tdd/scaffold.sh`:**
-If it does not exist, call `/tdd-scaffold` to generate it.
+`.claude/tdd/scaffold.sh` が存在するか確認する。
+なければ `/tdd-scaffold` を呼んで生成する。
 
 ---
 
-## The "can-do" tree
+## ルーティング
 
-```
-X は xxx ができる  ← root node (hypothesis for problem resolution)
-├── A は aaa ができる
-│   ├── D は ddd ができる
-│   └── E は eee ができる
-└── B は bbb ができる
-    └── C は ccc ができる
-```
+次の三条件で入り口を決める。
 
-Each node takes the form "Name can [behavior]."
-**The name comes first, followed by what it can do.**
-"What is X? — something that can xxx." Placing a node means answering this question.
+| 条件 | 行き先 |
+|---|---|
+| `plans/<project>/test-tree.md` が**存在しない** | `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` を読み、分解から始める |
+| `plans/<project>/test-tree.md` が**存在する** | `${CLAUDE_SKILL_DIR}/subcmds/compose.md` を読み、合成から始める |
+| feedback からの**構造的再入**の指示がある | `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` の「部分木再入口」へ。ツリーを編集したのち、合成に合流する |
 
-**Write node names in Japanese.**
-Japanese concept names prevent implementation identifiers (function names, class names) from leaking into node names.
+**`test-tree.md` の存在は「確認済み」を意味する。** draft 段階のツリーはファイルにならない
+（規約は分解側に記述）。
 
-**The predicate describes behavior — not means.**
-
-| NG | OK |
-|----|-----|
-| 展開状態マネージャーは localStorage でディレクトリの開閉を管理できる | 展開状態マネージャーはディレクトリの開閉状態を保持して管理できる |
-
-If a technology name (API, library, storage type, protocol, etc.) appears in the predicate,
-it is a signal that implementation detail has leaked into the node.
-
-Means selection is the driver's (test code's) responsibility.
-When a node pre-selects means, the option of in-memory implementation outside the browser disappears.
-
-**The tree is a test file.**
-While writing code for E's test, you should still be aware of X's behavior —
-this prevents near-sighted implementation.
-
-The tree may be a semi-lattice (nodes with multiple parents).
-Shared nodes are an opportunity for naming.
-
-The tree changes as understanding updates.
-However, **when the nature of an upper node changes, cross-check with problem.md** (see step 6).
+合成では、**現在位置はテストスイートの通過状態から導出する。** 進捗を別途記録することはしない。
 
 ---
 
-## Test and module design
+## 参照文書
 
-Tests for modules isolated from the dependency graph — nodes not participating in composition — produce false negatives. Tests keep passing even when the implementation changes.
+必要になった時点で読む。
 
-When multiple implementation options exist, evaluate by: testability (can it be verified independently as a module), dependency traceability (can the dependency be traced in the dependency graph), false-negative risk, and change cost. Options that score poorly on multiple criteria are treated as design problems.
+| 文書 | 内容 |
+|---|---|
+| `${CLAUDE_SKILL_DIR}/norms/vocabulary.md` | 語彙規範 — 辞書の読み書き作法、語彙登録ルール、不可逆性チェック |
+| `${CLAUDE_SKILL_DIR}/norms/dialogue.md` | 対話規範 — 提示 → 承認の作法 |
+| `${CLAUDE_SKILL_DIR}/norms/pattern-matching.md` | 構造パターン照合手続き — 分解・合成の双方から呼ばれる |
 
 ---
 
-## Steps
+## 共通の約束事
 
-### 1. Load
+### 進行規則
 
-Read the above files at session start.
+- **problem.md を書き換えない**（それは /tdd-problem の仕事）
+- **使える状態まで持っていく**（本番デプロイは別フェーズ）
+- **TodoWrite を使う**（実装タスクを追跡する）
 
-Minimal codebase exploration:
-- Confirm entry points (how is this feature reached?)
-- Existing related implementations and reusable parts
-- Existing type definitions (to avoid duplication and naming conflicts)
+### 実装中の observations
 
-### 2. Define and name the root X
-
-Read problem.md and ask: **"What needs to be possible for this problem to be solved?"**
-
-**If user-story.md exists:** Lay out the Then clauses (expected outcomes) from each scenario.
-The root "can do" emerges as the common denominator of what can be said when all these Thens hold.
-Verify the root by working backwards from the Then clauses — check if it matches the answer from problem.md.
-If they don't match, consider whether problem.md or the user stories contains an oversight.
-
-**First check whether existing vocabulary can express it:**
-Search with `dict-search.js` to see if existing concepts suffice:
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s <keyword> [<keyword2> ...] <plans_dir>
-```
-
-If existing vocabulary suffices, do not create a new name.
-
-If not, define a new X:
-Express it as "X is something that can xxx."
-The name is a **Japanese concept name** (e.g., `フロントマターテンプレートローダー`).
-Once named, present it following the **vocabulary registration rule** (table + approval),
-then add to `plans/<project>/dictionary.json` entries array:
-`{"name":"<概念名>","en":"EnglishName","context":"<context>","domain":"application","definition":"xxx ができるもの","relations":[],"src":null,"wip":{"status":"new","discovered":"tdd-run"}}`
-
-Once root X is determined, declare the relationship between the entry point identified in step 1 and X:
-
-```
-Entry point: <entry-point-file> → X
-```
-
-If the entry point cannot be determined, return to step 1 and complete the investigation.
-
-### 3. Write the root test and leave it red
-
-Write the test for "X can xxx."
-Do not make this test green until the tree is complete.
-
-### 4. Decompose the tree and finalize skeleton tests and vocabulary
-
-Decompose "What does X need in order to xxx?" One line per node.
-Continue until reaching leaves (granular enough to implement directly).
-
-When naming each node, simultaneously declare the context (domain boundary) in `[context]` form:
-
-```
-X は xxx ができる [editor]
-├── A は aaa ができる [editor]
-└── B は bbb ができる [event]
-```
-
-Context represents the domain boundary the node belongs to — it is both a file organization decision
-and a design declaration of "which domain does this module's concept belong to?"
-When a cross-context dependency arises (parent `[editor]`, child `[event]`, etc.),
-re-examine whether that boundary is appropriate from a domain understanding perspective.
-
-Shared nodes in the semi-lattice (referenced by multiple nodes) are also treated as independent files.
-If a shared node's context cannot be pinned to one — it doesn't belong to any existing context —
-it is a candidate for its own independent domain boundary. Consider defining a new context.
-
-After decomposition, perform a **technology term scan** before finalizing the tree:
-
-Scan all node predicates (the "can [verb]" part) and check for terms in these categories:
-- URLs, endpoints, HTTP methods
-- Library or framework names
-- Storage types (localStorage, DB, S3, etc.)
-- Communication protocols, file formats
-
-If found, re-ask "What behavior does this predicate represent?" and rewrite to eliminate the technology term before finalizing the tree.
-
-Next, perform a **scaffolding feasibility check**:
-
-Verify that each node's subject is a valid Japanese concept name.
-If URL paths, technical operation descriptions, or camelCase identifiers have crept in, re-examine until you have a nameable concept.
-
-This check eliminates the root cause of "can't write a test" judgments before they occur at the implementation phase.
-
-Next, perform a **loadability check**:
-
-Verify that the module assigned to each node can be loaded in the test execution environment.
-The following are considered non-loadable:
-- Directly references runtime dependencies unavailable in the test environment (browser APIs, GUI framework contexts, etc.)
-- Has side effects on load (event listener registration, screen operations, etc.)
-
-If non-loadable nodes exist, decide between these 2 options before proceeding:
-1. **Extract logic to a separate module** — move pure logic to a module loadable in the test environment, change the context declaration in the tree
-2. **Do not write a unit test for that node** — explicitly mark the `it()` as "manual verification only" and skip
-
-"Copy logic into the test file to verify" is not an option.
-
-**構造パターン照合手続き（共通）:**
-
-対象の形状を観察し、既知の構造パターンが当てはまるか確認する。以下は「パターン照合」
-（対象＝ツリー形状、domain=`pattern`）と、後述の「UIパターン照合」（対象＝`ui` エントリの
-関係の形状、domain=`ui-pattern`）の両方から呼ばれる共通手続き。
-
-1. 既存のパターンエントリを辞書で検索する:
-   ```bash
-   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=<domain> <plans_dir>
-   ```
-2. `heuristic` フィールドを持つ各エントリについて、対象がそれに一致するか確認する。
-   `domain=pattern` で辞書にまだエントリがない場合は、次のビルトインヒューリスティックを
-   フォールバックとして使う:
-   - 複数の状態ノードがあり条件によって遷移している → StateMachine 候補
-   - ノードが一方向に連なり前の出力が次の入力になっている → Pipeline 候補
-   - 一つのイベントに複数のノードが反応している → Observer 候補
-3. 既知パターンの確認後、辞書にまだない新規パターンを対象が示唆していないかも検討する。
-   AI・人間どちらも候補を提案できる。
-4. 候補ごと（既知・新規問わず）:
-   a. パターンの語彙で対象を再構成した案を作る
-   b. 元の形と再構成案を並べて提示する
-   c. ユーザーに再構成案の方が明確かどうか確認する
-   d. 採用されたら、**語彙登録ルール**（表＋承認 — 再構成案の提示はこの代わりにならない。
-      定義とヒューリスティックを示していないため）に従って提示し、登録する:
-      ```bash
-      node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
-      {"name":"<パターン名>","en":"<PatternName>","context":null,"domain":"<domain>","definition":"...","heuristic":"..."}
-      EOF
-      ```
-      `wip` フィールドは自動付与される。新規パターンや役割分担があるものには `components`
-      （役割名の配列）も付ける。
-5. どの候補も当てはまらなければそのまま進める。
-
-**パターン照合 (パターンマッチング):** ツリーの形状を対象に、上の**構造パターン照合手続き**を
-domain=`pattern` で実行する。
-
-ツリーはここまで一貫して手段（UIを含む）に依存しない。UIというシグニファイアの命名は、機械の分解
-ではなく、機械を実際にエントリーポイントへ組み込む合成の最終段階（ステップ8）で行う。
-
-**After decomposition, present the tree to the user and get confirmation before proceeding.**
-
-Once confirmed, first generate `plans/<project>/test-tree.md`.
-
-**Generate test-tree.md:**
-
-At the same time the tree is finalized, record the utilization hypothesis for what this session aims to achieve.
-The utilization hypothesis takes the form "if used, this should happen / if this happens, it's off" — commit before implementation.
-
-**If user-story.md exists:** Use the Given/When/Then from each scenario as material.
-Each scenario corresponds to one item of "if used, this should happen." The condition under which a scenario fails becomes "if this happens, it's off."
-**If user-story.md does not exist:** Use "the state in which it can be said to be solved" from problem.md as material.
-
-Write this together with the user.
-
-```markdown
-# テストツリー: <プロジェクト名>
-
-**作成:** YYYY-MM-DD
-
-## できるのツリー
-
-X は xxx ができる [context]
-├── A は aaa ができる [context]
-│   ├── D は ddd ができる [context]
-│   └── E は eee ができる [context]
-└── B は bbb ができる [context]
-
-## 利用仮説
-
-- 使ったらこうなるはず: ...
-- こうなったら外れ: ...
-```
-
-Once test-tree.md is generated, do the following two things simultaneously starting from the tree names.
-
-**Generate test skeleton:**
-
-Place test files under `tests/<dir>/` (`<dir>` is the `[context]` label declared for the node in the tree).
-Write `describe()` blocks corresponding to each tree node into test files, preserving the nested structure.
-Leave `it()` bodies empty (TODO).
-
-Use the Japanese node name directly as the subject of `describe()`:
-
-```javascript
-describe('フロントマターテンプレートローダーは xxx ができる', () => {
-  describe('テンプレートマッチャーは aaa ができる', () => {
-    it('TODO', () => {})
-  })
-  describe('フロントマター文字列ビルダーは bbb ができる', () => {
-    it('TODO', () => {})
-  })
-})
-```
-
-At this point the tree and test files are in 1-to-1 correspondence.
-**Never proceed to implementation without a node appearing in the skeleton.**
-
-**Generate stubs (scaffolding):**
-
-Call `.claude/tdd/scaffold.sh` for each node in the tree:
-
-```bash
-.claude/tdd/scaffold.sh <Subject_en> <verb_en> <context>
-```
-
-- `Subject_en`: Resolve the node's subject S via the vocabulary's `en:` field — PascalCase English identifier
-- `verb_en`: Direct English camelCase translation of the node's verb V
-- `context`: The `[context]` label declared in the tree
-
-Each node corresponds to an independent file. When multiple nodes share the same S, the script appends functions to the existing file.
-
-The Japanese name in `describe()` and the English identifier in the implementation correspond to each other — concept declaration (Japanese) and identifier declaration (English) happen in separate phases.
-With stubs in place, there is no need to decide "which function to write in" at the implementation phase.
-
-When creating stubs, add types to function signature arguments and return values (`@param`, `@returns`, TypeScript type annotations, etc.).
-Placeholders are fine at this stage. If an argument type is complex or corresponds to a data concept, promote it to a type stub.
-
-**Generate type stubs:**
-
-Generate type definitions for dictionary entries corresponding to data concepts.
-
-Criteria for data concepts:
-- Definition describes attributes/structure: "something that has ~", "a collection of ~", "the state of ~"
-- Appears as an argument/return value passed between other nodes, not as a tree subject (S)
-- Expected to appear as the same shape across multiple nodes
-
-Use the vocabulary's `en:` field for type names, defined following language conventions.
-Fields can be placeholders. Attach `@vocab` to link to the dictionary entry.
-
-Device concepts (loaders, builders, etc. — those functioning as tree subjects S) become functions/classes, not types, and are excluded.
-
-**Register solution domain vocabulary:**
-
-Among node names that correspond to the solution domain (device, transformation, operation names),
-present them following the **vocabulary registration rule** (table + approval — tree confirmation
-covered names and predicates only, not definitions and relations), then add them to
-`plans/<project>/dictionary.json` via `dict-write.js` (never edit the JSON directly):
-
-```bash
-node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
-[
-  { "name": "<概念名>", "en": "<ConceptName>", "context": "<dir>", "domain": "solution",
-    "definition": "...", "relations": [{ "type": "references", "target": "<概念名>", "note": "" }] }
-]
-EOF
-```
-
-The `wip` field is attached automatically. Validation errors reject the whole write — fix the input and rerun.
-Exclude: root nodes, concepts already registered as application domain vocabulary, implementation-detail subdivisions.
-
-The correspondence between application domain concepts and these will be confirmed during the walkthrough (step 9).
-
-### 5. Implement from leaves upward, composing as you go
-
-Starting from leaf nodes, repeat red → green → refactor.
-Once green, move up one node and compose.
-
-Writing tests for each node:
-
-```javascript
-describe('A は aaa ができる', () => {
-  it('xxx したとき yyy になる', () => {
-    // Define the interface before implementation
-  })
-})
-```
-
-**References to implementation:**
-
-`@vocab` and `@test` annotations were already written during scaffolding in step 4.
-Do not remove or change them when filling in the implementation.
-
-**Test execution command:**
-
-```bash
-npm test -- <test-file-path>   # or bun test <file>, etc. — use whichever is detected
-```
-
-**Loop prevention (5 consecutive failures):**
-
-```
-⚠️  5回のイテレーションで通りませんでした。
-
-次のアクションを選んでください:
-- 続ける
-- 一時中断（findings.md を生成して問題定義へ）
-- 分解の仕方を見直す
-```
-
-**Don't miss naming opportunities:**
-Pause when you notice:
-
-- Multiple nodes can be grasped together as "a flow of ~"
-- A shared semi-lattice node has no name
-- You can answer "what are these functions doing?" in one phrase
-
-When you pause, **first check whether existing vocabulary can express it**.
-If not, give it a new name and write it to `plans/<project>/dictionary.json`.
-
-**Guidelines for which nodes to register:**
-Concepts the user can use to talk about the domain — root nodes and intermediate nodes that feel grounded in domain reality are targets.
-Implementation-detail subdivisions (specific algorithms, temporary helpers) are not registered.
-
-When registering something new, search existing concepts with `dict-search.js -s` first.
-
-**Types and function signatures:**
-Attaching types to arguments and return values is the default posture. Types arise both from function relationships and vocabulary relationships.
-
-Finalize the fields of type stubs from step 4 as implementation reveals what they should be. Don't leave them until step 9.
-
-When you notice the following while writing argument types, extract as a named type:
-- The same argument shape appears in multiple functions
-- An inline object has grown large
-- A type stub was not created in step 4, but it became clear through implementation that it is a data concept
-
-When a type is extracted, attach `@vocab` and define it following language conventions.
-
-### 6. Detecting mutation of upper nodes
-
-When you notice during implementation that the nature of an upper node's "can do" has changed:
-
-1. **Cross-check with problem.md**: Does the new composition resolve the "cannot do" in problem.md?
-   - **Yes**: Give the new X a name, update the root test, write to `plans/<project>/dictionary.json`
-   - **No**: Identify what is missing and rebuild the tree
-2. Report to the user
-
-### 7. Confirm the root turned green
-
-Once composition is complete, confirm the test from step 3 turns green.
-
-When green, ask the user for confirmation.
-If the user accepts, proceed to step 8.
-
-### 8. Integration and behavior verification (make it usable)
-
-Don't stop at test green. Bring the changes to an **actually usable state**:
-
-- Verify that the root module is actually referenced from the entry point declared in step 2.
-- Integrate the changes into the user-facing entry point (UI, CLI, endpoint, etc.)
-- Run the actual app and confirm end-to-end operation
-- If integration requires judgment but information is lacking, integrate with a reasonable default and leave a note in findings
-
-**UI要素の命名と再利用（エントリーポイントがUIのとき）:**
-
-UIは機械（できるツリー）を人間に開くシグニファイアで、機械の分解には属さない。ここ——実際にエント
-リーポイントへ組み込む瞬間——で初めて実体を持つ。ここでの手続きは「意図を確認する」ことではなく、
-シグニファイアの命名と再利用であることに注意する。既存のもので足りるかを先に確認し、足りないときだ
-け新しく名付ける。
-
-画面・ボタン・リストなど、ユーザーが直接触れる部品をエントリーポイントに組み込むたびに:
-
-1. **再利用の確認** — 同じ・類似のシグニファイアがすでにないか検索する:
-   ```bash
-   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=ui <plans_dir>
-   ```
-   既存のもので足りるなら、新しく作らずそれを使う。
-2. **トンマナの適用** — その部品の役割（破壊的操作・主要操作など）に対応する `design-token` エント
-   リを検索する:
-   ```bash
-   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domain=design-token <plans_dir>
-   ```
-   該当するトークンがあれば、リテラルな色・px値を直接書く代わりにそれを参照する実装にする。
-3. **命名・登録** — 再利用できない新規の部品は、実装と同時に**語彙登録ルール**（表＋承認）に従って
-   `domain: "ui"` として登録する:
-   ```bash
-   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" add --to <plans_dir>/dictionary.json --discovered tdd-run <<'EOF'
-   {"name":"<UI概念名>","en":"<UIConceptName>","context":"<dir>","domain":"ui",
-    "definition":"...",
-    "relations":[{"type":"references","target":"<対象概念>","note":""}]}
-   EOF
-   ```
-   `relations: references` は概念への操作ハンドルとしての参照に使う（例: 削除ボタンが記事を参照す
-   る）。`relations: contains` はハンドルの合成に使う——複数の操作ハンドルが合成されてより大きな
-   操作ハンドルになる関係で（例: 入力ハンドルと送信ハンドルが合成されて投稿フォームになる）、器が
-   中身を保持する関係ではない。空間的な配置（左右・上下）は書かない。手順2でdesign-tokenを適用した
-   場合も`relations: references`で繋ぐ。
-
-   **命名の基準**: エントリーポイントそのもの（画面・ページ等、合成の起点）は、できるツリーのroot X
-   と同じ理由——分解・合成の起点だから——で常に登録する。それ以外の中間の複合ハンドル（フォーム等）
-   は再利用可能性が基準になる。いまの文脈から切り離して他所でも使えるときに名付け、文脈固有で使い
-   回さないなら辞書には登録せず実装内の無名の構成のままでよい。
-
-   概念が特定の状態のときだけ意味をなす場合（例: 記事が公開中のときだけ表示される「非公開化」ボタ
-   ン）、その概念の辞書エントリに `states` フィールドがなければ状態の全集合を追加し、`relations[].note`
-   で該当状態を参照する（`ui`エントリ側に状態リストを複製しない）。
-
-   概念のどの操作を起動するかを明示したい場合（`references`だけでは「記事」を指すだけで、削除・編集
-   のどちらを起動するかが曖昧になる）、その概念の辞書エントリに `affordances` フィールドがなければ
-   操作の一覧を追加し、`relations[].note`で該当する操作を参照する（`ui`エントリ側に操作名を複製し
-   ない）。`affordances`はできるツリーの装置分割とは独立した、ドメイン言語としての操作一覧であり、
-   実際にどの装置が実現しているかは別途`src`/`@vocab`の機械チェックで追跡する（配線そのものの機械
-   チェックはステップ9で行う）。
-4. **UIパターン照合** — このエントリーポイントに複数の`ui`エントリが蓄積したら、**構造パターン照合手
-   続き**をdomain=`ui-pattern`で実行し、master-detail等の構造的再利用がないか確認する（例: 単一概
-   念の複数インスタンスを列挙する`ui`エントリと、その単一インスタンスを表示する`ui`エントリが揃って
-   いる）。
-
-このエントリーポイントにユーザーが直接触れる部品がない場合、この手続き全体をスキップする。
-
-### 9. Dictionary / test / implementation walkthrough and user story verification
-
-Once integration (step 8) is complete, confirm names and wiring are consistent across phases and
-update `plans/<project>/dictionary.json`. Dictionary updates in this step go through `dict-write.js`
-(`add` for new entries, `update` for existing ones — `update` replaces only the fields you pass;
-arrays like `relations` are replaced whole).
-
-First create a correspondence table:
-
-```
-語彙（plans/dictionary）  | テスト describe()  | 実装（関数・モジュール名）| 型定義
---------------------------|-------------------|--------------------------|-------
-ツリービルダー             | なし               | buildTree()              | なし（装置）
-ネスト変換                 | ✓                 | buildTree() 内部         | なし
-ツリーレンダラー           | ✓                 | renderTreeHtml()         | なし（装置）
-記事                      | -                 | -                        | Article（型定義あり）
-```
-
-Points to verify:
-
-- **Vocabulary → test**: Does the name registered in the vocabulary appear in `describe()`?
-  Names that disappeared were "quietly resolved" — record in findings.
-- **Test → implementation**: Does the subject name in `describe()` match the function/module/class name in implementation?
-  Names should have been fixed by scaffolding in step 4, so divergence here means a conversion happened at that stage.
-  If divergence is found, record in findings and fix the implementation to the correct name.
-  If matching, add implementation references to the `relations` field of the corresponding entry in `plans/<project>/dictionary.json`.
-- **Implementation → vocabulary**: Among device names that appear in implementation, consider adding any unregistered ones.
-- **Vocabulary → type**: Does a type definition corresponding to data concept vocabulary entries exist?
-  If not, define it there. If there was a type stub from step 4, fill in fields confirmed by implementation.
-- **Vocabulary → src**: Write the confirmed implementation path into the `"src"` field of each vocabulary entry —
-  including `ui` domain entries registered during integration in step 8:
-  ```bash
-  node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <概念名> <<'EOF'
-  { "src": "src/<dir>/<file>.js" }
-  EOF
-  ```
-  Also verify it matches the file placement decided during the module boundary check in step 4
-  (for `ui` entries, the file wired during integration in step 8).
-- **Implementation → dependency graph**: Check `.claude/tdd/config.json` for `depgraph.regen`.
-  If absent, skip this whole point and note in findings that the check was skipped (mention
-  `/tdd-scaffold depgraph` as an opt-in setup). If present, regenerate the graph once
-  (`<depgraph.regen>`, writes `<depgraph.graph>`), then run both checks against it:
-  1. **Isolated-node check (application/solution domain)** — for the file(s) implemented in steps 5–7:
-     - Resolve them via `grep -rn "@vocab: <concept-name>"` (not `src` — see above)
-     - If `depgraph.scope` is set and a file matches none of its globs, that file is **outside graph
-       coverage** (e.g., a language the graph tool cannot analyze) — skip it and note in findings
-       that the check did not apply, NOT that the node is isolated
-     - Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>` and check whether any result matches one of the `entry_points` globs
-     - If none match, the node is isolated from composition — record it in findings as a false-negative risk (see "Test and module design")
-  2. **Wiring check (`ui` domain)** — for each `ui` entry registered in step 8:
-     - Add `@vocab: <ui-name>` to the entry's `src` file (same annotation convention as other domains), if not already present
-     - Run `node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui-entryのsrc>` and check whether the `src` of each `references`/`contains` target appears in the result
-     - If not, decide between a wiring gap (fix the implementation) or a stale `relations` field (fix with `dict-write.js update`)
-     - If the `ui` entry's `src` is shared with a larger composed handle (not modularized independently), skip this point and note in findings that it was out of scope for module granularity (not a defect — see rationale.md)
-
-**Run user story tests:**
-
-Once the walkthrough above is done, run `/tdd-userstory run <project>`.
-Skip if `plans/<project>/user-story.md` does not exist.
-
-**Response by result:**
-
-| Result | Action |
-|--------|--------|
-| `pass` / `pending` | Proceed to step 10 |
-| `fail` (assertion failure) | Record failure details in findings.md and proceed to step 10 (see below) |
-| `execution-error` | Enter error handling loop (see below) |
-
-**When `execution-error` — handling loop (max 3 attempts):**
-
-1. Analyze the error and consider a response
-2. Present the analysis and response to the user, get approval before implementing
-3. Re-run `/tdd-userstory run <project>`
-4. If `execution-error` continues, repeat steps 1–3 (max 3 times)
-
-If `execution-error` is not resolved after 3 attempts:
-
-```
-⚠️ ユーザーストーリーテストを3回試みましたが実行できませんでした。
-
-エラー種別: <種別>
-最後のエラー: <エラーメッセージ>
-試みた対応策:
-  1回目: <対応内容>
-  2回目: <対応内容>
-  3回目: <対応内容>
-
-ユーザーストーリーテストをスキップして次のステップへ進みます。
-```
-
-Record this in findings.md and proceed to step 10.
-
-**Recording in findings.md:**
-
-For `fail`: Write the failing scenario (US number, scenario name), expected vs actual output, and where to route (/tdd-problem or /tdd-run).
-
-For `execution-error` (3-attempt stop): Write error type, last error message, and 3 attempted responses.
-
-### 10. Implementation observations
-
-Leave notes on what you noticed during implementation in `plans/<project>/observations.md`.
-**Routing (where to send back) is decided in tdd-feedback. Write only facts and observations here.**
+実装中に気づいたことを `plans/<project>/observations.md` に残す。
+**差し戻し先（routing）の判断は tdd-feedback で行う。ここには事実と観察のみを書く。**
 
 ```markdown
 # Observations: <project>
@@ -669,14 +100,12 @@ Leave notes on what you noticed during implementation in `plans/<project>/observ
 ## 実装中の気づき
 
 - （ツリーの組み換えが起きた場合、その理由）
-- （5回連続失敗など、詰まったポイント）
+- （詰まったポイント）
 - （スキルの使い方で想定と違ったこと）
 - （特になし）
 ```
 
----
-
-## Session end
+### セッション終了
 
 ```
 ✅ 実装が完了しました。
@@ -686,26 +115,12 @@ Leave notes on what you noticed during implementation in `plans/<project>/observ
 
 ---
 
-## Constraints
+## 成果物
 
-- **Do not rewrite problem.md** (that is /tdd-problem's job)
-- **Do not directly edit docs/dictionary.json** (only via /tdd-vocab promote)
-- **Do not make the root node test green midway**
-- **Keep tests to the minimum that declares "can do"** (don't write them mechanically)
-- **Tests verify logic by loading its implementation** — do not write tests that verify local functions defined inside the test file
-- **Bring it to a usable state** (production deployment is a separate phase)
-- **Use TodoWrite** (track implementation tasks)
-- **Write all tree nodes in the skeleton test before starting implementation**
-- **The decision to omit a node is made after attempting to write the `it()`** (don't skip before writing)
-
----
-
-## Deliverables
-
-1. **Tests (the "can-do" tree)** — declares "can do" for each node from root to leaves
-2. **Implementation code** — tests pass and integrated at the entry point
-3. **Type definitions** (if applicable) — types arising from vocabulary data concepts and function signatures
-4. **tests/acceptance/<project>.spec.ts** — acceptance test skeleton (output of `/tdd-userstory run`)
-5. **findings.md** (optional)
-6. **plans/<project>/dictionary.json** — vocabulary during plan work (written directly by tdd-run)
-7. **plans/<project>/test-tree.md** — test tree and utilization hypothesis
+1. **テスト（できるのツリー）** — root から葉まで、各ノードの「できる」を宣言する
+2. **実装コード** — テストが通り、エントリーポイントに統合されている
+3. **型定義**（該当する場合）— 語彙のデータ概念と関数シグネチャから生じる型
+4. `tests/acceptance/<project>.spec.ts` — 受け入れテストのスケルトン（`/tdd-userstory run` の出力）
+5. `findings.md`（任意）
+6. `plans/<project>/dictionary.json` — プラン作業中の語彙（tdd-run が直接書く）
+7. `plans/<project>/test-tree.md` — テストツリーと利用仮説
