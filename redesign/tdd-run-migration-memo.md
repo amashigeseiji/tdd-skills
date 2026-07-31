@@ -157,6 +157,13 @@ rationale.md への参照が実行時に読まれないため、同じ節に一�
   登録自体は引き続き `/tdd-vocab` の仕事であり、tdd-run では行わない。
 - ~~**`tdd-run/skill.json` の description が古い**~~ — 2026-07-31 の修正4で更新。
   `version` は `1.2.0` のまま（スコープ外として据え置き）。
+- ~~**feedback 一周後の再入経路がルーティングにない**~~ — 2026-07-31（`redesign/findings.md`
+  指示、一周後の再入）で解消。skill.md のルーティングに
+  `test-tree.md` あり・`findings.md` あり の三条件目を追加し、findings.md を読んで
+  戻し先 `/tdd-run` の項目を提示 → ツリーに触るかどうかで decompose の部分木再入口 /
+  compose に振り分けるようにした。旧・条件3（feedback からの構造的再入の指示）はこれに吸収して削除。
+  decompose.md の部分木再入口にこの契機を、compose.md の現在位置導出に「全緑なら findings の
+  該当項目が仕事」の一文を、それぞれ追記した。
 
 ### 未着手
 

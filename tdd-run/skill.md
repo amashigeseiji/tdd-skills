@@ -57,11 +57,18 @@ problem.md はコミットされるため、マシンをまたぐと壊れる。
 | 条件 | 行き先 |
 |---|---|
 | `plans/<project>/test-tree.md` が**存在しない** | `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` を読み、分解から始める |
-| `plans/<project>/test-tree.md` が**存在する** | `${CLAUDE_SKILL_DIR}/subcmds/compose.md` を読み、合成から始める |
-| feedback からの**構造的再入**の指示がある | `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` の「部分木再入口」へ。ツリーを編集したのち、合成に合流する |
+| `plans/<project>/test-tree.md` が**存在する**・`plans/<project>/findings.md` が**存在しない** | `${CLAUDE_SKILL_DIR}/subcmds/compose.md` を読み、合成から始める |
+| `plans/<project>/test-tree.md` が**存在する**・`plans/<project>/findings.md` が**存在する** | 一周後の戻りである。findings.md を読み、戻し先が `/tdd-run` の項目を提示して、ツリーに触る項目があるかをユーザーと確認する。ある → `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` の「部分木再入口」へ（ツリー編集後、合成に合流）。ない → `${CLAUDE_SKILL_DIR}/subcmds/compose.md` へ |
 
 **`test-tree.md` の存在は「確認済み」を意味する。** draft 段階のツリーはファイルにならない
 （規約は分解側に記述）。
+
+**`findings.md` の存在は「feedback を少なくとも一周した」ことを意味する** — feedback は
+必ず findings を生成し、クローズ時はプランごとアーカイブされるため、`plans/<project>/` に
+findings.md が残っているのは、一周後に同一プランへ差し戻された場合だけである。
+
+**ここで読んだ findings は以降の分解・合成から参照される。** 同一セッション内であるため、
+分解・合成の側で findings.md を再読することはしない。
 
 合成では、**現在位置はテストスイートの通過状態から導出する。** 進捗を別途記録することはしない。
 
