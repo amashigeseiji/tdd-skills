@@ -52,13 +52,21 @@ problem.md はコミットされるため、マシンをまたぐと壊れる。
 
 ## ルーティング
 
-次の三条件で入り口を決める。
+次の分岐で入り口を決める。
 
-| 条件 | 行き先 |
-|---|---|
-| `plans/<project>/test-tree.md` が**存在しない** | `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` を読み、分解から始める |
-| `plans/<project>/test-tree.md` が**存在する**・`plans/<project>/findings.md` が**存在しない** | `${CLAUDE_SKILL_DIR}/subcmds/compose.md` を読み、合成から始める |
-| `plans/<project>/test-tree.md` が**存在する**・`plans/<project>/findings.md` が**存在する** | 一周後の戻りである。findings.md を読み、戻し先が `/tdd-run` の項目を提示して、ツリーに触る項目があるかをユーザーと確認する。ある → `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` の「部分木再入口」へ（ツリー編集後、合成に合流）。ない → `${CLAUDE_SKILL_DIR}/subcmds/compose.md` へ |
+- `plans/<project>/test-tree.md` が**存在しない** → `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` を読み、分解から始める
+- `plans/<project>/test-tree.md` が**存在する**
+  - `plans/<project>/findings.md` が**存在しない** → `${CLAUDE_SKILL_DIR}/subcmds/compose.md` を読み、合成から始める
+  - `plans/<project>/findings.md` が**存在する** — 一周後の戻りである。findings.md を読み、戻し先が
+    `/tdd-run` の項目を提示した上で、**このセッションで扱うスコープ**をユーザーと確認する:
+    - **新しいスコープ**（problem.md の残りユーザーストーリー等）を扱う →
+      `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` を読み、新しいフェーズとして分解から始める
+      （新しいツリーを test-tree.md に追記する）
+    - **既存ツリーに触る findings 項目**を扱う →
+      `${CLAUDE_SKILL_DIR}/subcmds/decompose.md` の「部分木再入口」へ（ツリー編集後、合成に合流）
+    - **ツリーに触らない項目・続きの作業** → `${CLAUDE_SKILL_DIR}/subcmds/compose.md` へ
+
+条件に関わらず、ユーザーが新しいスコープでの分解を明示的に指示した場合は decompose（新フェーズ）へ入る。
 
 **`test-tree.md` の存在は「確認済み」を意味する。** draft 段階のツリーはファイルにならない
 （規約は分解側に記述）。
