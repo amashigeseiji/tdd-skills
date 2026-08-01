@@ -93,8 +93,7 @@ plans/<project>/
   problem.md        # 問題定義
   user-story.md     # BDD仕様（/tdd-userstory create）
   dictionary.json     # 作業中の語彙（promote で docs/ に昇格）
-  findings.md       # フィードバックの記録（削除せず history/ へ）
-  history/          # アーカイブ
+  findings.md       # フィードバックの記録（周回をまたいで同じ一枚を更新）
 
 docs/
   dictionary.json     # 安定した語彙ネットワーク
