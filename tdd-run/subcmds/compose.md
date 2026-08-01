@@ -45,6 +45,9 @@ cat <plans_dir>/test-tree.md
 確定したツリーの名前から出発して、次の四つを作る。
 **再開時、材料がすでにできているものはスキップする。**
 
+**四つとも、対象は能力層（装置主語）ノードのみである。** 主語が `domain: "actor"` の登録済み
+役割であるノード（root・行為層）は材料化しない — その対応物は受け入れテストと利用仮説である。
+
 #### テストスケルトンを生成する
 
 テストファイルは `tests/<dir>/` に置く（`<dir>` はツリーでそのノードに宣言された `[context]` ラベル）。
@@ -54,11 +57,11 @@ cat <plans_dir>/test-tree.md
 `describe()` の主語には日本語のノード名をそのまま使う:
 
 ```javascript
-describe('フロントマターテンプレートローダーは xxx ができる', () => {
-  describe('テンプレートマッチャーは aaa ができる', () => {
+describe('フロントマターテンプレートローダーは xxx できる', () => {
+  describe('テンプレートマッチャーは aaa できる', () => {
     it('TODO', () => {})
   })
-  describe('フロントマター文字列ビルダーは bbb ができる', () => {
+  describe('フロントマター文字列ビルダーは bbb できる', () => {
     it('TODO', () => {})
   })
 })
@@ -95,7 +98,8 @@ TypeScript の型注釈等）。
 `scaffold.sh` がファイルを作成（または追記）した時点で、そのノードの実装ファイルは確定している。
 発生源で書くこと。あとの突合に持ち越さない。
 
-- **すでに辞書に登録されている概念**（分解で登録した root X 等）: `dict-write.js update` で
+- **すでに辞書に登録されている概念**（分解で登録した概念 — 装置主語 root X、構造的仮登録の
+  `ui` エントリ等）: `dict-write.js update` で
   `src` にスタブのファイルパスを設定する:
   ```bash
   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <概念名> <<'EOF'
@@ -153,7 +157,7 @@ EOF
 各ノードのテストを書く:
 
 ```javascript
-describe('A は aaa ができる', () => {
+describe('A は aaa できる', () => {
   it('xxx したとき yyy になる', () => {
     // 実装の前にインターフェースを定義する
   })
@@ -223,7 +227,14 @@ npm test -- <test-file-path>   # または bun test <file> 等 — 検出され�
 
 ### 3. root が緑になったことを確認する
 
-合成が root に達したら、分解の手順3で置いた root テストが緑になることを確認する。
+分解の手順3と同じく、root の主語の型によって読み分ける。
+
+**装置主語 root のフェーズ:** 合成が root に達したら、分解の手順3で置いた root テストが
+緑になることを確認する。
+
+**役割主語 root のフェーズ:** root のユニットテストは存在しない。
+**能力層の全ノードが緑になった時点**をこの節目とする。
+root の「できる」の最終検証は、手順6のユーザーストーリー実行（受け入れテスト）が担う。
 
 緑になったら、ユーザーに確認を求める。
 ユーザーが受け入れたら手順4へ進む。
@@ -311,6 +322,15 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -s --filter domai
 `entry_points` から到達可能か。到達不能なら偽陰性リスクとして findings に記録 —
 孤立したモジュールのテストは実装が変わっても通り続ける）と、
 配線検査（`ui` エントリの `src` から `references`/`contains` の対象の `src` が到達可能か）。
+**どちらも `depgraph-search.js` を通す**（`dependency-graph.json` を直接読まない）:
+
+```bash
+# 孤立ノード検査 — 結果が entry_points のいずれかに一致するか
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --from -d 999 -s <depgraph.graph> <file>
+# 配線検査 — 対象の src が結果に現れるか
+node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -s <depgraph.graph> <ui エントリの src>
+```
+
 `depgraph.regen` がなければこの注記全体をスキップし、検査を行わなかったことを findings に
 記録する（`/tdd-scaffold depgraph` がオプトインの設定手順）。詳細は lint 化の際に機械化する。
 
