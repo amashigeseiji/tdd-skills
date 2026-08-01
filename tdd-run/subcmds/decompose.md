@@ -20,9 +20,16 @@ cat <plans_dir>/problem.md
 cat <plans_dir>/user-story.md 2>/dev/null
 ```
 
+**あわせて次の二つの規範を冒頭で読む**（リンク先の参照ではなく、実際にファイルを読む）:
+
+- `../norms/vocabulary.md` — 辞書の読み書き作法、語彙登録ルール、不可逆性チェック
+- `../norms/dialogue.md` — 提示 → 承認の作法
+
+どちらも分解の全体に及ぶ規範であり、「必要になった時点」を読む前に判断することはできない。
+以降この文書が「語彙規範の**語彙登録ルール**に従って」と書くとき、そのルールの本体は規範側にある。
+
 `problem.md` がなければ、先に `/tdd-problem` で問題を定義する。
-`plans/<project>/dictionary.json` がなければ、ツリーを構築する前に `/tdd-vocab plan` を呼ぶ
-（[語彙規範](../norms/vocabulary.md)を参照）。
+`plans/<project>/dictionary.json` がなければ、ツリーを構築する前に `/tdd-vocab plan` を呼ぶ。
 
 ---
 
