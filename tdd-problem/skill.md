@@ -47,7 +47,7 @@ find <meta>/plans -name "problem.md" -type f -not -path "<meta>/plans/archives/*
 - **見つかった problem.md を全件読んでおく**。後の手順（5）で新しい問題との関係を確認するために使う
 - 既存ファイルのうち、更新対象のものがあれば、更新か新規かをユーザーに確認する
 - `findings.md`（実装・利用フェーズからの戻り）があり、それが「**問題の発見**」に分類されるものなら、その内容を problem.md に統合する（「ツリーの再構築が必要」に分類されるものは /tdd-run の次サイクルで扱うので、ここでは問題に関わる部分だけを扱う）
-- findings.md を problem.md に統合したら、**削除せず** history/ にアーカイブする（対応する problem.md のバージョンを明記）
+- 統合した findings 項目は、findings.md 側の `**状態:**` を「対応済み（/tdd-problem, problem.md v<n>, YYYY-MM-DD）」に更新する。**findings.md は移動・リネーム・退避しない**（ファイルの存在と各項目の状態が /tdd-run のルーティング入力になっている）。problem.md 側には統合済みかどうかを書かない
 
 ### 2. 問題のヒアリング
 

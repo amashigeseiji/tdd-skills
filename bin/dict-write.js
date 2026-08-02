@@ -13,7 +13,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const DOMAINS = ['application', 'solution', 'pattern', 'ui', 'ui-pattern', 'design-token'];
+const DOMAINS = ['application', 'solution', 'pattern', 'ui', 'ui-pattern', 'design-token', 'actor'];
 const CONTEXT_NULL_DOMAINS = ['pattern', 'ui-pattern', 'design-token'];
 const HEURISTIC_REQUIRED_DOMAINS = ['pattern', 'ui-pattern'];
 const RELATION_TYPES = ['contains', 'belongs_to', 'references'];
