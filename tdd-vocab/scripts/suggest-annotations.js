@@ -12,34 +12,21 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadScanConfig, collectImplFiles, walkFiles, hasExt } = require('./scan-config.cjs');
 
 const root = process.cwd();
 const testDirArg = process.argv[2] || 'tests';
 const testDir = path.resolve(root, testDirArg);
 const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
 
-const IMPL_EXTS = ['.js', '.ts', '.mjs', '.cjs', '.jsx', '.tsx', '.py', '.rb', '.go'];
-const SKIP_DIRS = new Set(['node_modules', '.git', testDirBasename, 'dist', 'build']);
+// 走査範囲は .claude/tdd/config.json の vocab_scan（scan-config.cjs 参照）
+const scanConfig = loadScanConfig(root, { extraExclude: [testDirBasename] });
 
 // ---- 収集 -------------------------------------------------------------------
 
-function collectFiles(dir, skip) {
-  const results = [];
-  function walk(d) {
-    if (!fs.existsSync(d)) return;
-    for (const entry of fs.readdirSync(d, { withFileTypes: true })) {
-      if (entry.name.startsWith('.') || (skip && skip.has(entry.name))) continue;
-      const full = path.join(d, entry.name);
-      if (entry.isDirectory()) walk(full);
-      else if (IMPL_EXTS.some(ext => entry.name.endsWith(ext))) results.push(full);
-    }
-  }
-  walk(dir);
-  return results;
-}
-
-const testFiles = collectFiles(testDir, null);
-const implFiles = collectFiles(root, SKIP_DIRS);
+// テスト側にも同じ exclude が効く（受け入れテストは単体テストツリーとは別物なので @test 候補にしない）
+const testFiles = walkFiles(testDir, scanConfig.exclude, name => hasExt(name, scanConfig.extensions));
+const implFiles = collectImplFiles(root, scanConfig);
 
 // ---- 候補検索 ---------------------------------------------------------------
 

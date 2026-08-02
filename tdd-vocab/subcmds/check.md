@@ -39,7 +39,7 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -a -s [<plans_dir
 ```bash
 # 1. カバレッジマップを生成（語彙 → 実装 → テストの接続状況）
 node ${CLAUDE_SKILL_DIR}/scripts/generate-map.js [src-dirs]
-# src-dirs 省略時は src, lib, packages を探索。docs/map.json に出力される。
+# src-dirs 省略時は config.json の vocab_scan.roots（未設定ならリポジトリ全体）を探索。docs/map.json に出力される。
 
 # 2. 整合性チェック（壊れ・欠けを検出）
 node ${CLAUDE_SKILL_DIR}/scripts/check-vocab.js [test-dir]
@@ -51,9 +51,23 @@ node ${CLAUDE_SKILL_DIR}/scripts/check-vocab.js [test-dir]
 `check-vocab.js` が確認する内容:
 - `@vocab` の参照先エントリが辞書に存在するか
 - `@test` の参照先ファイルが存在するか
-- stable エントリに対応する `@vocab` を持つ実装が存在するか（逆引き）
+- stable エントリに対応する `@vocab` を持つ実装が存在するか（逆引き）。対象は `domain: solution` / `ui` のみ——`application` / `actor` / `pattern` / `ui-pattern` / `design-token` は設計上、対応する実装装置を持たない
 - テストディレクトリ名が辞書コンテキストの `dir` フィールドと対応しているか
 - エントリの `src` が指すファイルが実在するか
-- `src` が指すファイルに、対応する `@vocab` が実際についているか（`src` と `@vocab` の矛盾検出。
-  `src` は `tdd-run` が書く代表1ファイルの簡易キャッシュなので、実装がリネーム・分割された後に
-  古いパスのまま残ることがある）
+- `src` が指すファイルに、対応する `@vocab` が実際についているか（`src` と `@vocab` の矛盾検出。`src` は `tdd-run` が書く代表1ファイルの簡易キャッシュなので、実装がリネーム・分割された後に古いパスのまま残ることがある）
+- 走査対象の**外**に `@vocab` があるか（走査設定の不足の検出）
+
+**走査設定の補修（`[走査対象外]` / `[未対応]` が出たとき）:**
+
+3つのスクリプトは `<meta>/.claude/tdd/config.json` の `vocab_scan`（`extensions` / `exclude` / `roots`）に従って照合対象を決める。
+設定が実態から外れると、アノテーションが実在するのに不可視になり `[未実装]` を誤検出する。
+`check-vocab.js` はこれを自分で検出して足すべき値を提示するので、警告を読み流さず、その場で `config.json` を直してから再実行する:
+
+- **`[走査対象外] <拡張子> ...`** — その言語のファイルが走査されていない。`vocab_scan.extensions` に追加する（アノテーションが実在している以上、追加してよい）。
+- **`[走査対象外] vocab_scan.roots の外の ...`** — 走査範囲の外にアノテーションがある。実装なら `roots` に、生成物・配布物なら `exclude` に足す。**どちらかはユーザーに確認する**（配布物は原本と独立にドリフトし、修正済みの違反を再注入するため、除外側が妥当なことが多い）。
+- **`[未対応] tests/<dir>/ に対応する辞書コンテキストが存在しない`** — そのディレクトリが BC 単位で切られていないなら `vocab_scan.exclude` にパス付き（`tests/acceptance` の形）で足す。受け入れテストの `tests/acceptance/` はユーザーストーリー単位なので常にこちら。BC 単位のつもりなら、辞書のコンテキスト `dir` と綴りが合っているかを疑う。
+
+`exclude` は「この道具群が見ない場所」であり、実装ファイルの走査・テストディレクトリの照合・`@test` 候補の探索のすべてに一律に効く。
+照合は `.gitignore` と同じ読み方（スラッシュなしは名前としてどの階層でも一致、ありならルートからのパス）。
+
+再実行して警告が消え、`[未実装]` の件数が減ることを確認してから整合性の報告を書く。

@@ -102,7 +102,7 @@ tests/acceptance/
   <project>.spec.ts # 受け入れテスト
 
 .claude/tdd/
-  config.json       # plans コミット設定
+  config.json       # plans コミット設定・走査設定（vocab_scan）
   scaffold.sh       # スタブ生成スクリプト
 ```
 
@@ -130,6 +130,6 @@ TDD スキルを使いたいプロジェクトで、**初回のみ**実行しま
 
 プロジェクトの言語・フレームワーク・ディレクトリ構成を調査したうえで以下を行います:
 
-- `plans/` のコミット設定を確認し `.claude/tdd/config.json` に保存する
+- `plans/` のコミット設定と走査設定（どのファイルを実装とみなすか）を確認し `.claude/tdd/config.json` に保存する
 - プロジェクト固有のスタブ生成スクリプト `.claude/tdd/scaffold.sh` を生成する
 - コードベースを俯瞰してコンテキストを発見し、`docs/dictionary.json` の骨格を作る

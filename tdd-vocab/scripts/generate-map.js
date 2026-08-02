@@ -1,6 +1,9 @@
 "use strict"
 import fs from 'node:fs'
 import path from 'node:path'
+import scanConfig from './scan-config.cjs'
+
+const { loadScanConfig, collectImplFiles, TEST_DIR_NAMES } = scanConfig
 
 const ROOT = process.cwd()
 
@@ -32,6 +35,10 @@ function extractFunctionName(line) {
     /^(?:export\s+)?(?:async\s+)?function\s+(\w+)/,
     /^(?:export\s+)?(?:async\s+)?const\s+(\w+)\s*=/,
     /^(?:export\s+)?(?:async\s+)?(?:let|var)\s+(\w+)\s*=/,
+    // JS 以外の言語（走査対象の拡張子は config.json の vocab_scan で決まる）
+    /^(?:[\w@]+\s+)*func\s+(\w+)/,            // Swift / Go
+    /^(?:[\w@]+\s+)*def\s+(\w+)/,             // Python / Ruby
+    /^(?:[\w@]+\s+)*(?:class|struct|enum|interface)\s+(\w+)/,
   ]
   for (const p of patterns) {
     const m = t.match(p)
@@ -86,33 +93,21 @@ function parseTestCases(filePath) {
   return cases
 }
 
-// ── File discovery ─────────────────────────────────────────────────────────
-
-function findJsFiles(dir) {
-  const result = []
-  if (!fs.existsSync(dir)) return result
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name)
-    if (entry.isDirectory()) result.push(...findJsFiles(full))
-    else if (entry.name.endsWith('.js')) result.push(full)
-  }
-  return result
-}
-
 // ── Main ───────────────────────────────────────────────────────────────────
 
 function generate() {
   const dict = parseDictionary(path.join(ROOT, 'docs/dictionary.json'))
 
-  const srcDirs = process.argv.slice(2).length > 0
-    ? process.argv.slice(2)
-    : ['src', 'lib', 'packages']
-  const jsFiles = srcDirs.flatMap(d => findJsFiles(path.join(ROOT, d)))
+  // 走査範囲は config.json の vocab_scan（引数があればそれが優先。テストは実装ではないので常に除外）
+  const cfg = loadScanConfig(ROOT, { extraExclude: TEST_DIR_NAMES })
+  const argDirs = process.argv.slice(2)
+  if (argDirs.length > 0) cfg.roots = argDirs
+  const srcFiles = collectImplFiles(ROOT, cfg)
 
   // word -> { implements: [file, fn][], tests: Set<testFile>, _seen: Set<string> }
   const wordMap = new Map()
 
-  for (const absFile of jsFiles) {
+  for (const absFile of srcFiles) {
     const relFile = path.relative(ROOT, absFile)
     for (const block of parseAnnotations(absFile)) {
       for (const vocab of block.vocabs) {

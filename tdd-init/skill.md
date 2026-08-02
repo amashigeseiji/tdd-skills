@@ -25,7 +25,7 @@ mkdir -p .claude/tdd
 ```
 
 `.claude/tdd/config.json` を作成する。このファイルの存在自体が「ここがメタレポルート」の目印なので、
-内容は空でよい:
+最小構成は空でよい:
 
 ```json
 {}
@@ -34,6 +34,43 @@ mkdir -p .claude/tdd
 （`commit_plans` や `branch_name_template` などのプロジェクト固有設定は、それを使う側が
 必要になったタイミングで追記する。ここでは絶対パスを書かない — 書くと clone/移動時に
 実際の場所と食い違い、コミットもできなくなる。）
+
+**走査設定（`vocab_scan`）:**
+
+語彙と実装を照合するスクリプト（`check-vocab.js` / `generate-map.js` / `suggest-annotations.js`）が**どのファイルを実装とみなすか**の宣言。
+未設定だと既定の拡張子（`.js .ts .mjs .cjs .jsx .tsx .py .rb .go`）でリポジトリ全体を走査する。
+既定から外れる要素があるプロジェクトではここで宣言しておく:
+
+```bash
+git ls-files | sed 's/.*\.//' | sort | uniq -c | sort -rn | head   # 拡張子の分布
+ls -d */                                                           # トップレベルのディレクトリ
+cat .gitignore                                                     # 生成物・配布物の在処
+```
+
+調査結果からユーザーに提案し、承認を得て書く:
+
+```json
+{
+  "vocab_scan": {
+    "extensions": [".js", ".swift"],
+    "exclude": ["dist-app", "tests/acceptance"],
+    "roots": ["src", "lib", "native"]
+  }
+}
+```
+
+| フィールド | 意味 | 未設定のとき |
+|---|---|---|
+| `extensions` | 走査する拡張子（宣言したものだけを見る） | 既定リスト |
+| `exclude` | この道具群が見ない場所 | `node_modules` / `.git` / `dist` / `build` のみ |
+| `roots` | 走査するディレクトリ（リポジトリルートからの相対） | リポジトリ全体 |
+
+`exclude` の照合は `.gitignore` と同じ読み方をする——`dist-app` のようにスラッシュを含まなければディレクトリ名としてどの階層でも一致し、`tests/acceptance` のように含めばリポジトリルートからのパスとして一致する。
+効く範囲は実装ファイルの走査・テストディレクトリと辞書コンテキストの照合・`@test` 候補の探索のすべて。
+受け入れテストの置き場 `tests/acceptance/` は BC 単位ではなくユーザーストーリー単位で切られ、単体テストツリーとも別物なので、ここに入れておく。
+
+単一言語で素直な構成なら省略してよい。
+不足は後から `/tdd-vocab check` が `[走査対象外]` / `[未対応]` として検出し、足すべき値を提示する。
 
 **config.local.json の gitignore 追加:**
 
@@ -73,6 +110,6 @@ echo 'plans/' >> .gitignore
 
 ## 成果物
 
-- `.claude/tdd/config.json` — メタレポルートを示すマーカー（内容は空でよい）
+- `.claude/tdd/config.json` — メタレポルートを示すマーカー（走査設定 `vocab_scan` を必要に応じて含む）
 - `.claude/tdd/scaffold.sh` — スタブ生成スクリプト（tdd-scaffold が作成）
 - `docs/dictionary.json` — 初期語彙定義（tdd-vocab init が作成）
