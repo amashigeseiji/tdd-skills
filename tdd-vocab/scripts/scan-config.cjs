@@ -5,12 +5,17 @@
  * 共通モジュール。走査対象がスクリプトごとにずれると、アノテーションが実在するのに不可視になり
  * `[未実装]` を誤検出する。
  *
- * 走査範囲は `<meta>/.claude/tdd/config.json` の `vocab_scan` で宣言する:
+ * 走査対象のファイルは git が可視とみなすもの（追跡済み + 未追跡かつ gitignore されていない）に限る。
+ * gitignore 済みの生成物・配布物は原本と独立にドリフトし、修正済みの違反を再注入するため、
+ * これを走査すると lint 結果が原本の状態ではなくビルドのタイミングに左右される。
+ * git リポジトリでない場合はファイルシステムを直接歩く（gitignore は参照できない）。
+ *
+ * さらに絞り込みを `<meta>/.claude/tdd/config.json` の `vocab_scan` で宣言する:
  *
  *   { "vocab_scan": {
- *       "extensions": [".js", ".swift"],           // 走査する拡張子（宣言したものだけ。未設定なら既定リスト）
+ *       "extensions": [".js", ".swift"],             // 走査する拡張子（宣言したものだけ。未設定なら既定リスト）
  *       "exclude": ["dist-app", "tests/acceptance"], // 見ない場所（基本除外に足す）
- *       "roots": ["src", "lib", "native"]          // 走査するディレクトリ（未設定ならリポジトリ全体）
+ *       "roots": ["src", "lib", "native"]            // 走査するディレクトリ（未設定ならリポジトリ全体）
  *   } }
  *
  * exclude の照合は .gitignore と同じ読み方をする——スラッシュを含まなければディレクトリ名として
@@ -28,6 +33,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 // 既定の走査対象拡張子（config.json の vocab_scan.extensions で置き換えられる）
 const DEFAULT_EXTENSIONS = ['.js', '.ts', '.mjs', '.cjs', '.jsx', '.tsx', '.py', '.rb', '.go'];
@@ -77,6 +83,7 @@ function nonEmptyArray(v) {
  * 除外の照合器を作る（.gitignore と同じ読み方）。
  *   スラッシュなし: ディレクトリ名としてどの階層でも一致（node_modules など）
  *   スラッシュあり: リポジトリルートからのパスとして一致（tests/acceptance など）
+ * ファイルにもディレクトリにも使える（パスの途中の要素が一致すれば除外）。
  */
 function makeExcluder(root, entries) {
   const names = new Set();
@@ -87,9 +94,10 @@ function makeExcluder(root, entries) {
     (value.includes('/') ? paths : names).add(value);
   }
   return absPath => {
-    if (names.has(path.basename(absPath))) return true;
+    const segments = path.relative(root, absPath).split(path.sep);
+    if (segments.some(seg => names.has(seg))) return true;
     if (paths.size === 0) return false;
-    const rel = path.relative(root, absPath).split(path.sep).join('/');
+    const rel = segments.join('/');
     for (const p of paths) {
       if (rel === p || rel.startsWith(`${p}/`)) return true;
     }
@@ -100,10 +108,10 @@ function makeExcluder(root, entries) {
 /**
  * 走査設定を読む。
  *   root         : リポジトリルート（通常 process.cwd()）
- *   extraExclude : 呼び出し側が足す除外ディレクトリ名（テストディレクトリ等）
+ *   implExclude  : 実装ファイルの走査でだけ足す除外（テストディレクトリ等）
  * 返り値の roots は null なら「リポジトリ全体」。
  */
-function loadScanConfig(root, { extraExclude = [] } = {}) {
+function loadScanConfig(root, { implExclude = [] } = {}) {
   const configPath = findConfigPath(root);
   let declared = {};
   if (configPath) {
@@ -113,24 +121,46 @@ function loadScanConfig(root, { extraExclude = [] } = {}) {
       throw new Error(`config parse failed: ${configPath}\n${e.message}`);
     }
   }
+  const excludeEntries = [...BASE_EXCLUDE, ...(declared.exclude || [])].filter(Boolean);
   return {
     configPath,
     declared: Object.keys(declared).length > 0,
     extensions: nonEmptyArray(declared.extensions)
       ? declared.extensions.map(normalizeExt)
       : DEFAULT_EXTENSIONS.slice(),
-    exclude: makeExcluder(root, [...BASE_EXCLUDE, ...(declared.exclude || []), ...extraExclude].filter(Boolean)),
+    exclude: makeExcluder(root, excludeEntries),
+    implExclude: makeExcluder(root, [...excludeEntries, ...implExclude.filter(Boolean)]),
     roots: nonEmptyArray(declared.roots) ? declared.roots.slice() : null,
   };
 }
 
-// ---- 走査 ------------------------------------------------------------------
+// ---- ファイルの可視集合 -------------------------------------------------------
 
 function hasExt(name, extensions) {
   return extensions.some(ext => name.endsWith(ext));
 }
 
-function walkFiles(dir, exclude, accept) {
+function isHidden(root, absPath) {
+  return path.relative(root, absPath).split(path.sep).some(seg => seg.startsWith('.'));
+}
+
+/** git が可視とみなすファイル（追跡済み + 未追跡かつ gitignore されていないもの） */
+function gitVisibleFiles(root) {
+  let out;
+  try {
+    out = execFileSync('git', ['-C', root, 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
+      encoding: 'utf-8',
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch (e) {
+    return null;   // git がない・リポジトリでない
+  }
+  return out.split('\0').filter(Boolean).map(rel => path.join(root, rel));
+}
+
+/** git を使えないときの代替。gitignore は参照できないので基本除外だけで刈る */
+function walkAllFiles(root, exclude) {
   const results = [];
   function walk(d) {
     if (!fs.existsSync(d)) return;
@@ -139,11 +169,51 @@ function walkFiles(dir, exclude, accept) {
       const full = path.join(d, entry.name);
       if (exclude(full)) continue;
       if (entry.isDirectory()) walk(full);
-      else if (accept(entry.name)) results.push(full);
+      else results.push(full);
     }
   }
-  walk(dir);
+  walk(root);
   return results;
+}
+
+/** リポジトリ内の可視ファイル一覧（cfg にキャッシュする） */
+function visibleFiles(root, cfg) {
+  if (!cfg._visibleFiles) {
+    const listed = gitVisibleFiles(root);
+    cfg._visibleFiles = listed
+      ? listed.filter(f => !isHidden(root, f) && fs.existsSync(f))
+      : walkAllFiles(root, cfg.exclude);
+  }
+  return cfg._visibleFiles;
+}
+
+function isUnder(dir, file) {
+  return file === dir || file.startsWith(dir + path.sep);
+}
+
+/**
+ * dir 以下の可視ファイルを、除外と拡張子で絞って返す。
+ *   exclude : 使う除外器（cfg.exclude か cfg.implExclude）
+ */
+function filesUnder(root, cfg, dir, { extensions, exclude = cfg.exclude } = {}) {
+  const base = path.resolve(root, dir);
+  return visibleFiles(root, cfg).filter(f =>
+    isUnder(base, f) && !exclude(f) && (!extensions || hasExt(f, extensions))
+  );
+}
+
+/** dir 直下のディレクトリ名（可視ファイルを1つ以上含み、除外されていないもの） */
+function visibleDirsIn(root, cfg, dir) {
+  const base = path.resolve(root, dir);
+  const names = new Set();
+  for (const file of visibleFiles(root, cfg)) {
+    if (!isUnder(base, file)) continue;
+    const rest = path.relative(base, file).split(path.sep);
+    if (rest.length < 2) continue;
+    if (cfg.exclude(path.join(base, rest[0]))) continue;
+    names.add(rest[0]);
+  }
+  return [...names];
 }
 
 function rootDirs(root, cfg) {
@@ -154,7 +224,9 @@ function rootDirs(root, cfg) {
 function collectImplFiles(root, cfg) {
   const seen = new Set();
   for (const dir of rootDirs(root, cfg)) {
-    for (const f of walkFiles(dir, cfg.exclude, name => hasExt(name, cfg.extensions))) seen.add(f);
+    for (const f of filesUnder(root, cfg, dir, { extensions: cfg.extensions, exclude: cfg.implExclude })) {
+      seen.add(f);
+    }
   }
   return [...seen];
 }
@@ -163,14 +235,19 @@ function collectImplFiles(root, cfg) {
  * 走査対象の*外*にアノテーションがあるファイルを探す（設定の不足の検出）。
  *   byExt   : 拡張子が走査対象に入っていない → vocab_scan.extensions に足す候補
  *   outside : 拡張子は対象だが roots の外にある → roots か exclude に足す候補
- * exclude で明示的に除外されたものは意図的な除外として扱い、報告しない。
+ * exclude で明示的に除外されたもの・gitignore 済みのものは、意図的な除外として報告しない。
  */
 function findUnscannedAnnotations(root, cfg) {
   const inRoots = rootDirs(root, cfg);
   const byExt = new Map();
   const outside = [];
 
-  for (const file of walkFiles(root, cfg.exclude, name => hasExt(name, CANDIDATE_EXTENSIONS))) {
+  const candidates = filesUnder(root, cfg, root, {
+    extensions: CANDIDATE_EXTENSIONS,
+    exclude: cfg.implExclude,
+  });
+
+  for (const file of candidates) {
     let content;
     try {
       content = fs.readFileSync(file, 'utf-8');
@@ -183,7 +260,7 @@ function findUnscannedAnnotations(root, cfg) {
       const ext = path.extname(file);
       if (!byExt.has(ext)) byExt.set(ext, []);
       byExt.get(ext).push(file);
-    } else if (cfg.roots && !inRoots.some(r => file === r || file.startsWith(r + path.sep))) {
+    } else if (cfg.roots && !inRoots.some(r => isUnder(r, file))) {
       outside.push(file);
     }
   }
@@ -199,6 +276,7 @@ module.exports = {
   loadScanConfig,
   collectImplFiles,
   findUnscannedAnnotations,
-  walkFiles,
+  filesUnder,
+  visibleDirsIn,
   hasExt,
 };

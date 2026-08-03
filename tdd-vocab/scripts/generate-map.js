@@ -99,7 +99,7 @@ function generate() {
   const dict = parseDictionary(path.join(ROOT, 'docs/dictionary.json'))
 
   // 走査範囲は config.json の vocab_scan（引数があればそれが優先。テストは実装ではないので常に除外）
-  const cfg = loadScanConfig(ROOT, { extraExclude: TEST_DIR_NAMES })
+  const cfg = loadScanConfig(ROOT, { implExclude: TEST_DIR_NAMES })
   const argDirs = process.argv.slice(2)
   if (argDirs.length > 0) cfg.roots = argDirs
   const srcFiles = collectImplFiles(ROOT, cfg)

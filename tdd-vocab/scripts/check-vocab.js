@@ -20,13 +20,13 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadScanConfig, collectImplFiles, findUnscannedAnnotations } = require('./scan-config.cjs');
+const { loadScanConfig, collectImplFiles, findUnscannedAnnotations, visibleDirsIn } = require('./scan-config.cjs');
 
 const root = process.cwd();
 const testDirArg = process.argv[2] || 'tests';
 const testDir = path.resolve(root, testDirArg);
 const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
-const scanConfig = loadScanConfig(root, { extraExclude: [testDirBasename] });
+const scanConfig = loadScanConfig(root, { implExclude: [testDirBasename] });
 const configLabel = scanConfig.configPath
   ? path.relative(root, scanConfig.configPath) || scanConfig.configPath
   : '.claude/tdd/config.json';
@@ -89,11 +89,11 @@ function scanImplementations() {
   return results;
 }
 
-function getTestContextDirs(dir, exclude) {
+// テスト側のコンテキストディレクトリ。可視ファイルを1つも持たないディレクトリ
+// （gitignore 済み・空）は数えない。
+function getTestContextDirs(dir) {
   if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir, { withFileTypes: true })
-    .filter(e => e.isDirectory() && !e.name.startsWith('.') && !exclude(path.join(dir, e.name)))
-    .map(e => e.name);
+  return visibleDirsIn(root, scanConfig, dir);
 }
 
 // ---- 収集 -------------------------------------------------------------------
@@ -127,7 +127,7 @@ const stableImplConcepts = new Set(stableDict.implConcepts);
 const stableContextDirs = stableDict.contexts.map(c => c.dir || c.name);
 
 const impls = scanImplementations();
-const testContextDirs = getTestContextDirs(testDir, scanConfig.exclude);
+const testContextDirs = getTestContextDirs(testDir);
 
 // ---- チェック ---------------------------------------------------------------
 

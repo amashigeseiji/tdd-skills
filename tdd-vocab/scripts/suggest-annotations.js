@@ -12,7 +12,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadScanConfig, collectImplFiles, walkFiles, hasExt } = require('./scan-config.cjs');
+const { loadScanConfig, collectImplFiles, filesUnder } = require('./scan-config.cjs');
 
 const root = process.cwd();
 const testDirArg = process.argv[2] || 'tests';
@@ -20,12 +20,12 @@ const testDir = path.resolve(root, testDirArg);
 const testDirBasename = path.relative(root, testDir).split(path.sep)[0];
 
 // 走査範囲は .claude/tdd/config.json の vocab_scan（scan-config.cjs 参照）
-const scanConfig = loadScanConfig(root, { extraExclude: [testDirBasename] });
+const scanConfig = loadScanConfig(root, { implExclude: [testDirBasename] });
 
 // ---- 収集 -------------------------------------------------------------------
 
 // テスト側にも同じ exclude が効く（受け入れテストは単体テストツリーとは別物なので @test 候補にしない）
-const testFiles = walkFiles(testDir, scanConfig.exclude, name => hasExt(name, scanConfig.extensions));
+const testFiles = filesUnder(root, scanConfig, testDir, { extensions: scanConfig.extensions });
 const implFiles = collectImplFiles(root, scanConfig);
 
 // ---- 候補検索 ---------------------------------------------------------------

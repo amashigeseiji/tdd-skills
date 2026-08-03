@@ -38,13 +38,13 @@ mkdir -p .claude/tdd
 **走査設定（`vocab_scan`）:**
 
 語彙と実装を照合するスクリプト（`check-vocab.js` / `generate-map.js` / `suggest-annotations.js`）が**どのファイルを実装とみなすか**の宣言。
-未設定だと既定の拡張子（`.js .ts .mjs .cjs .jsx .tsx .py .rb .go`）でリポジトリ全体を走査する。
+対象は git が可視とみなすファイル（追跡済み + 未追跡かつ gitignore されていないもの）に限られるので、gitignore 済みの生成物・配布物は宣言しなくてよい。
+そのうえで、未設定だと既定の拡張子（`.js .ts .mjs .cjs .jsx .tsx .py .rb .go`）でリポジトリ全体を走査する。
 既定から外れる要素があるプロジェクトではここで宣言しておく:
 
 ```bash
 git ls-files | sed 's/.*\.//' | sort | uniq -c | sort -rn | head   # 拡張子の分布
 ls -d */                                                           # トップレベルのディレクトリ
-cat .gitignore                                                     # 生成物・配布物の在処
 ```
 
 調査結果からユーザーに提案し、承認を得て書く:
@@ -53,7 +53,7 @@ cat .gitignore                                                     # 生成物�
 {
   "vocab_scan": {
     "extensions": [".js", ".swift"],
-    "exclude": ["dist-app", "tests/acceptance"],
+    "exclude": ["tests/acceptance"],
     "roots": ["src", "lib", "native"]
   }
 }
@@ -65,7 +65,7 @@ cat .gitignore                                                     # 生成物�
 | `exclude` | この道具群が見ない場所 | `node_modules` / `.git` / `dist` / `build` のみ |
 | `roots` | 走査するディレクトリ（リポジトリルートからの相対） | リポジトリ全体 |
 
-`exclude` の照合は `.gitignore` と同じ読み方をする——`dist-app` のようにスラッシュを含まなければディレクトリ名としてどの階層でも一致し、`tests/acceptance` のように含めばリポジトリルートからのパスとして一致する。
+`exclude` の照合は `.gitignore` と同じ読み方をする——`vendor` のようにスラッシュを含まなければディレクトリ名としてどの階層でも一致し、`tests/acceptance` のように含めばリポジトリルートからのパスとして一致する。
 効く範囲は実装ファイルの走査・テストディレクトリと辞書コンテキストの照合・`@test` 候補の探索のすべて。
 受け入れテストの置き場 `tests/acceptance/` は BC 単位ではなくユーザーストーリー単位で切られ、単体テストツリーとも別物なので、ここに入れておく。
 
