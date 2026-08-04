@@ -1,0 +1,25 @@
+{
+  "version": "1",
+  "contexts": [
+    { "dir": "native-shell", "name": "ネイティブシェル", "description": "アプリの外殻" }
+  ],
+  "entries": [
+    {
+      "name": "アプリウィンドウ",
+      "en": "AppWindow",
+      "context": "native-shell",
+      "domain": "solution",
+      "definition": "コンテンツを表示する窓。",
+      "src": "native/Sources/AppWindow.swift",
+      "relations": [{ "type": "contains", "target": "エラー表示", "note": "" }]
+    },
+    {
+      "name": "エラー表示",
+      "en": "ErrorView",
+      "context": "native-shell",
+      "domain": "solution",
+      "definition": "#アプリウィンドウ の中に失敗を表示する部品。",
+      "relations": [{ "type": "belongs_to", "target": "アプリウィンドウ", "note": "" }]
+    }
+  ]
+}

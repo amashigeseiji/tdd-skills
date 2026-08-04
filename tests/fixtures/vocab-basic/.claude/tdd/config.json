@@ -1,0 +1,6 @@
+{
+  "vocab_scan": {
+    "extensions": [".js"],
+    "roots": ["src"]
+  }
+}

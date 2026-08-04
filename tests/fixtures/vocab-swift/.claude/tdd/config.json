@@ -1,0 +1,6 @@
+{
+  "vocab_scan": {
+    "extensions": [".swift"],
+    "roots": ["native"]
+  }
+}

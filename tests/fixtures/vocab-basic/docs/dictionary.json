@@ -1,0 +1,51 @@
+{
+  "version": "1",
+  "contexts": [
+    { "dir": "blog", "name": "ブログ", "description": "記事の配信" }
+  ],
+  "entries": [
+    {
+      "name": "記事",
+      "en": "Article",
+      "context": "blog",
+      "domain": "application",
+      "definition": "読み手に届ける文章のまとまり。",
+      "relations": [{ "type": "references", "target": "記事ローダー", "note": "" }]
+    },
+    {
+      "name": "記事ローダー",
+      "en": "ArticleLoader",
+      "context": "blog",
+      "domain": "solution",
+      "definition": "#記事 をファイルから読み込む装置。",
+      "src": "src/loader.js",
+      "relations": [{ "type": "references", "target": "記事", "note": "" }]
+    },
+    {
+      "name": "公開ステータス",
+      "en": "PublishStatus",
+      "context": "blog",
+      "domain": "solution",
+      "definition": "#記事 が公開済みかどうかの状態。",
+      "relations": [{ "type": "references", "target": "記事", "note": "" }]
+    },
+    {
+      "name": "フィルター",
+      "en": "Filter",
+      "context": "blog",
+      "domain": "solution",
+      "definition": "#記事 の本文を変換する関数の総称。",
+      "src": "src/filter.js",
+      "relations": [{ "type": "references", "target": "記事", "note": "" }]
+    },
+    {
+      "name": "変換ドライバー",
+      "en": "ConvertDriver",
+      "context": "blog",
+      "domain": "solution",
+      "definition": "#フィルター を順に適用する装置。",
+      "src": "src/driver.js",
+      "relations": [{ "type": "references", "target": "フィルター", "note": "" }]
+    }
+  ]
+}
