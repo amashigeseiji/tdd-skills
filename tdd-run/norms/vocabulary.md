@@ -28,6 +28,9 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-search.js" -a -s <plans_dir>
 `dict-write.js` の使い方は各手順の書き込み箇所に示す。バリデーションエラーは書き込み全体を拒否する
 — 入力を修正して再実行する。
 
+実装側の `@vocab` 行は**概念名のみ**を取る。説明・注記は次の行に書く
+（行末までが概念名として照合されるため、同一行への注記は静かにリンク切れになる）。
+
 ## 作業仮説層としての plans/
 
 **`plans/<project>/dictionary.json` が存在しない場合（新しい問題）:**
