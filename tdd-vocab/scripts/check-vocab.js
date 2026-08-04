@@ -13,6 +13,7 @@
  *   - テストディレクトリ名が辞書コンテキストの dir フィールドと対応しているか
  *   - エントリの src が指すファイルが実在するか
  *   - src が指すファイルに、対応する @vocab がついているか（src と @vocab の矛盾検出）
+ *   - src を持つ概念の @vocab が実装側に1つも無いか（src の宣言が裏付けを持つかの確認）
  *   - 走査対象の外に @vocab があるか（走査設定の不足の検出）
  *
  * 走査範囲は .claude/tdd/config.json の vocab_scan で宣言する（scan-config.cjs 参照）。
@@ -34,6 +35,14 @@ const configLabel = scanConfig.configPath
 // 逆引き（[未実装]）の対象ドメイン。application / actor / pattern / ui-pattern / design-token は
 // 設計上、対応する実装装置を持たない（ユーザーが問題を語る言葉・行為の担い手・横断的な規約）。
 const IMPL_DOMAINS = new Set(['solution', 'ui']);
+
+// @vocab 行は行末までを概念名として読む。同じ行に注記を続けると説明文込みの文字列が
+// 概念名として照合され、リンク切れの理由が読み取りにくくなる。照合に失敗した値が
+// 注記を含んでいそうなときだけ、この区切りで前半を取り出して診断に添える。
+const NOTE_SEPARATOR_RE = /[—–]|\s-\s|。|、|（|\(/;
+// 区切り記号を持たない値を「長すぎる」と判定する閾値（概念名としての実用上限）
+const NAME_LENGTH_LIMIT = 24;
+const HINT_INDENT = ' '.repeat(13);
 
 // ---- パーサー ---------------------------------------------------------------
 
@@ -74,9 +83,9 @@ function scanImplementations() {
         const raw = vm[1].trim();
         const ctxMatch = raw.match(/^(.+?)\[([^\]]+)\]$/);
         if (ctxMatch) {
-          vocabs.push({ name: ctxMatch[1].trim(), context: ctxMatch[2].trim() });
+          vocabs.push({ name: ctxMatch[1].trim(), context: ctxMatch[2].trim(), raw });
         } else {
-          vocabs.push({ name: raw, context: null });
+          vocabs.push({ name: raw, context: null, raw });
         }
       }
       // @test: path/to/file.test.js
@@ -134,18 +143,31 @@ const testContextDirs = getTestContextDirs(testDir);
 const errors = [];
 const warnings = [];
 
+function isKnownConcept(name, context) {
+  return context ? allConceptsByContext.has(`${context}::${name}`) : allConcepts.has(name);
+}
+
+// 照合に失敗した @vocab 値が、概念名に注記を続けた書き方に見えるかを診断する。
+// 見えなければ null（記法以外の理由での照合失敗には何も足さない）。
+function noteHint(raw, context) {
+  const m = raw.match(NOTE_SEPARATOR_RE);
+  const head = m ? raw.slice(0, m.index).trim() : null;
+  if (!head && raw.length <= NAME_LENGTH_LIMIT) return null;
+  let hint = `${HINT_INDENT}→ @vocab 行は概念名のみを取る（行末までが概念名として照合される）。注記は次の行に書く`;
+  if (head && isKnownConcept(head, context)) {
+    hint += `\n${HINT_INDENT}  "${head}" は辞書に存在する`;
+  }
+  return hint;
+}
+
 for (const { file, vocabs, tests } of impls) {
   const rel = path.relative(root, file);
 
-  for (const { name, context } of vocabs) {
-    if (context) {
-      if (!allConceptsByContext.has(`${context}::${name}`)) {
-        errors.push(`[リンク切れ] ${rel}: @vocab "${name}[${context}]" — 辞書に存在しない`);
-      }
-    } else {
-      if (!allConcepts.has(name)) {
-        errors.push(`[リンク切れ] ${rel}: @vocab "${name}" — 辞書に存在しない`);
-      }
+  for (const { name, context, raw } of vocabs) {
+    if (!isKnownConcept(name, context)) {
+      const label = context ? `${name}[${context}]` : name;
+      const hint = noteHint(raw, context);
+      errors.push(`[リンク切れ] ${rel}: @vocab "${label}" — 辞書に存在しない` + (hint ? `\n${hint}` : ''));
     }
   }
 
@@ -183,7 +205,11 @@ for (const { name, context, src } of allEntriesWithSrc) {
   const normalizedSrc = path.normalize(src);
   const key = context ? `${context}::${name}` : name;
   const vocabFiles = vocabFilesByConcept.get(key) || vocabFilesByConcept.get(name);
-  if (vocabFiles && !vocabFiles.has(normalizedSrc)) {
+  if (!vocabFiles) {
+    // src は「この概念はこのファイルにある」という宣言なので、裏付けの @vocab が
+    // 実装側のどこにも無いなら、書き忘れか src の指し先の誤り。
+    warnings.push(`[src未注釈] "${name}" の src "${src}" にこの概念の @vocab がない（実装側のどこにも見つからない）`);
+  } else if (!vocabFiles.has(normalizedSrc)) {
     warnings.push(`[src不一致] "${name}" の src "${src}" に @vocab がない（@vocab があるのは: ${[...vocabFiles].join(', ')}）`);
   }
 }
