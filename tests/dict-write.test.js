@@ -24,6 +24,14 @@ function add(repo, json) {
   return run(WRITE, ['add', '--to', PLAN, '--file', 'input.json'], repo);
 }
 
+// 検証を通らない src を直接埋め込む（旧仕様で書かれたエントリの再現）
+function writeSrcDirectly(repo, src) {
+  const file = path.join(repo, PLAN);
+  const dict = JSON.parse(fs.readFileSync(file, 'utf-8'));
+  dict.entries[0].src = src;
+  fs.writeFileSync(file, JSON.stringify(dict));
+}
+
 function planEntries(repo) {
   const file = path.join(repo, PLAN);
   if (!fs.existsSync(file)) return [];
@@ -109,14 +117,31 @@ test('update での src 差し替えにも同じ検証がかかる', () => {
   assert.strictEqual(planEntries(repo)[0].src, 'src/loader.js');
 });
 
+test('check は src の記法違反をエラーにする', () => {
+  const repo = copyFixture('vocab-basic');
+  assert.strictEqual(add(repo, entry({})).code, 0);
+  writeSrcDirectly(repo, 'src/loader.js loadArticle(path)');
+
+  const { code, out } = run(WRITE, ['check', PLAN], repo);
+  assert.strictEqual(code, 1, out);
+  assert.ok(out.includes('関数名・注記・複数パスの併記は不可'), out);
+});
+
+test('check は src の実在と @vocab の裏付けを見ない（作業ツリーに依存させない）', () => {
+  const repo = copyFixture('vocab-basic');
+  assert.strictEqual(add(repo, entry({})).code, 0);
+  writeSrcDirectly(repo, 'src/renderer.js');   // まだ生成されていないスタブ
+
+  const { code, out } = run(WRITE, ['check', PLAN], repo);
+  assert.strictEqual(code, 0, out);
+  assert.ok(!out.includes('存在しません'), out);
+  assert.ok(!out.includes('@vocab'), out);
+});
+
 test('src に触れない update は既存の src の不備で止まらない', () => {
   const repo = copyFixture('vocab-basic');
   assert.strictEqual(add(repo, entry({})).code, 0);
-  // 検証を通らない src を直接埋め込んでおく（旧仕様で書かれたエントリの再現）
-  const file = path.join(repo, PLAN);
-  const dict = JSON.parse(fs.readFileSync(file, 'utf-8'));
-  dict.entries[0].src = 'src/loader.js loadArticle(path)';
-  fs.writeFileSync(file, JSON.stringify(dict));
+  writeSrcDirectly(repo, 'src/loader.js loadArticle(path)');
 
   fs.writeFileSync(path.join(repo, 'patch.json'), JSON.stringify({ definition: '#記事 を HTML に変換する。' }));
   const { code, out } = run(WRITE, ['update', '--to', PLAN, '--name', '記事レンダラー', '--file', 'patch.json'], repo);

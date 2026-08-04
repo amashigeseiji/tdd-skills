@@ -172,34 +172,41 @@ function key(e) {
 
 // src は「代表1ファイルの簡易キャッシュ」であり、check-vocab.js が existsSync で追う。
 // 複数パスの列挙・関数名や注記の併記が混ざると、そこで静かに [src不在] に落ちる。
-function validateSrc(entry) {
+//
+// 検証は2つに分かれる。記法は辞書ファイルだけで判定できるので check でも掛ける。
+// 実在と @vocab の裏付けは作業ツリーの状態に依存するため、書き込み（add / update）でだけ
+// 掛ける——ファイル全体の検証でこれを掛けると、辞書が正しくてもブランチの切り替えや
+// 未生成のスタブで exit 1 になり、check-vocab.js の [src不在] / [src未注釈] と二重になる。
+function validateSrcFormat(entry) {
   const errors = [];
-  const warnings = [];
   const label = `エントリ ${entry.name ?? '(名前なし)'}`;
   const src = entry.src;
-  if (src === undefined || src === null) return { errors, warnings };
+  if (src === undefined || src === null) return { errors };
 
   if (typeof src !== 'string' || src.trim() === '') {
     errors.push(`${label}: src は単一の相対パスの文字列にする（現在: ${JSON.stringify(src)}）`);
-    return { errors, warnings };
-  }
-  if (/[\s,()（）]/.test(src)) {
+  } else if (/[\s,()（）]/.test(src)) {
     errors.push(`${label}: src "${src}" に空白・カンマ・括弧が含まれています（代表1ファイルの相対パスだけを書く。関数名・注記・複数パスの併記は不可）`);
-    return { errors, warnings };
-  }
-  if (path.isAbsolute(src)) {
+  } else if (path.isAbsolute(src)) {
     errors.push(`${label}: src "${src}" が絶対パスです（リポジトリルートからの相対パスにする）`);
+  }
+  return { errors };
+}
+
+function validateSrc(entry) {
+  const { errors } = validateSrcFormat(entry);
+  const warnings = [];
+  if (errors.length > 0 || entry.src === undefined || entry.src === null) {
     return { errors, warnings };
   }
 
+  const label = `エントリ ${entry.name ?? '(名前なし)'}`;
   const root = findMetaRepo();
-  const abs = path.join(root, src);
+  const abs = path.join(root, entry.src);
   if (!fs.existsSync(abs)) {
-    errors.push(`${label}: src "${src}" が存在しません（${root} 基準）`);
-    return { errors, warnings };
-  }
-  if (!srcHasVocab(abs, entry.name)) {
-    warnings.push(`${label}: src "${src}" に @vocab: ${entry.name} がありません（実装側に注釈を書くか、src の指し先を見直す）`);
+    errors.push(`${label}: src "${entry.src}" が存在しません（${root} 基準）`);
+  } else if (!srcHasVocab(abs, entry.name)) {
+    warnings.push(`${label}: src "${entry.src}" に @vocab: ${entry.name} がありません（実装側に注釈を書くか、src の指し先を見直す）`);
   }
   return { errors, warnings };
 }
@@ -659,6 +666,7 @@ function cmdCheck(target) {
     const r = validateEntry(entry, { knownDirs, targetIsStable: stable });
     errors.push(...r.errors);
     warnings.push(...r.warnings);
+    errors.push(...validateSrcFormat(entry).errors);
     if (seen.has(key(entry))) errors.push(`エントリ ${entry.name}: 重複しています`);
     seen.add(key(entry));
     if (!stable && entry.wip === undefined) {
@@ -725,6 +733,8 @@ promote:
 
 check:
   書き込まずにファイル全体を検証する。エラーがあれば exit 1。
+  src は記法だけを見る（実在と @vocab の裏付けは作業ツリーの状態に依存するため、
+  check-vocab.js の [src不在] / [src未注釈] が担当する）。
 
 Examples:
   node dict-write.js add --to plans/myproject/dictionary.json --discovered "tdd-vocab plan" <<'EOF'
