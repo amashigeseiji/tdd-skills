@@ -170,6 +170,58 @@ function key(e) {
   return `${e.context}::${e.name}`;
 }
 
+// src は「代表1ファイルの簡易キャッシュ」であり、check-vocab.js が existsSync で追う。
+// 複数パスの列挙・関数名や注記の併記が混ざると、そこで静かに [src不在] に落ちる。
+function validateSrc(entry) {
+  const errors = [];
+  const warnings = [];
+  const label = `エントリ ${entry.name ?? '(名前なし)'}`;
+  const src = entry.src;
+  if (src === undefined || src === null) return { errors, warnings };
+
+  if (typeof src !== 'string' || src.trim() === '') {
+    errors.push(`${label}: src は単一の相対パスの文字列にする（現在: ${JSON.stringify(src)}）`);
+    return { errors, warnings };
+  }
+  if (/[\s,()（）]/.test(src)) {
+    errors.push(`${label}: src "${src}" に空白・カンマ・括弧が含まれています（代表1ファイルの相対パスだけを書く。関数名・注記・複数パスの併記は不可）`);
+    return { errors, warnings };
+  }
+  if (path.isAbsolute(src)) {
+    errors.push(`${label}: src "${src}" が絶対パスです（リポジトリルートからの相対パスにする）`);
+    return { errors, warnings };
+  }
+
+  const root = findMetaRepo();
+  const abs = path.join(root, src);
+  if (!fs.existsSync(abs)) {
+    errors.push(`${label}: src "${src}" が存在しません（${root} 基準）`);
+    return { errors, warnings };
+  }
+  if (!srcHasVocab(abs, entry.name)) {
+    warnings.push(`${label}: src "${src}" に @vocab: ${entry.name} がありません（実装側に注釈を書くか、src の指し先を見直す）`);
+  }
+  return { errors, warnings };
+}
+
+// check-vocab.js と同じ読み方で @vocab 行を拾う（行末までが概念名、末尾の [context] は除く）。
+function srcHasVocab(absPath, name) {
+  let content;
+  try {
+    content = fs.readFileSync(absPath, 'utf8');
+  } catch {
+    return false;   // 読めないものは判断しない（存在確認は上で済んでいる）
+  }
+  for (const line of content.split('\n')) {
+    const m = line.match(/@vocab:?\s+(.+)/);
+    if (!m) continue;
+    const raw = m[1].trim();
+    const ctxMatch = raw.match(/^(.+?)\[([^\]]+)\]$/);
+    if ((ctxMatch ? ctxMatch[1].trim() : raw) === name) return true;
+  }
+  return false;
+}
+
 function isNonEmptyString(v) {
   return typeof v === 'string' && v.trim() !== '';
 }
@@ -383,6 +435,9 @@ function cmdAdd(opts) {
     const r = validateEntry(entry, { knownDirs, targetIsStable: stable });
     errors.push(...r.errors);
     warnings.push(...r.warnings);
+    const rs = validateSrc(entry);
+    errors.push(...rs.errors);
+    warnings.push(...rs.warnings);
     if (dict.entries.some(e => key(e) === key(entry))) {
       errors.push(`エントリ ${entry.name}: 既に存在します（update を使ってください）`);
     }
@@ -440,6 +495,12 @@ function cmdUpdate(opts) {
   const r = validateEntry(updated, { knownDirs, targetIsStable: stable });
   errors.push(...r.errors);
   warnings.push(...r.warnings);
+  // src の検証は src を書き換えるときだけ行う（既存の src の不備で無関係な更新を止めない）
+  if ('src' in patch) {
+    const rs = validateSrc(updated);
+    errors.push(...rs.errors);
+    warnings.push(...rs.warnings);
+  }
   if (key(updated) !== key(existing) && dict.entries.some(e => key(e) === key(updated))) {
     errors.push(`エントリ ${updated.name}: 変更後の名前が既存エントリと重複します`);
   }
@@ -632,6 +693,8 @@ function main() {
 語彙辞書への書き込み専用スクリプト。すべての書き込みは検証を通過しないと実行されない。
 エラー（フォーマット違反・重複・未定義 context 等）は書き込みを拒否し、
 警告（参照未解決・双方向性の欠け・孤立等）は書き込んだうえで報告する。
+src は代表1ファイルの相対パスを1つだけ書く（複数パスの列挙・関数名や注記の併記は拒否。
+実在しないパスも拒否。指した先に当該概念の @vocab が無い場合は警告）。
 定義中の #参照 は、既知の概念名が # の直後からそのまま続いている場合に
 最長一致で解決する（例: #問題定義 は「問題」ではなく「問題定義」に解決）。
 
