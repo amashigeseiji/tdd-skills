@@ -88,7 +88,7 @@ while [ "$d" != "/" ]; do
   d=$(dirname "$d")
 done
 if [ -n "$META" ]; then
-  find "$META/docs" "$META/plans" -name "dictionary.md" 2>/dev/null | while read f; do
+  find "$META/docs" "$META/plans" -name "dictionary.md" -not -path "*/archives/*" 2>/dev/null | while read f; do
     json="${f%.md}.json"
     [ ! -f "$json" ] && echo "旧辞書: $f"
   done
