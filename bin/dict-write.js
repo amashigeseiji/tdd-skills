@@ -204,7 +204,7 @@ function validateSrc(entry) {
   const root = findMetaRepo();
   const abs = path.join(root, entry.src);
   if (!fs.existsSync(abs)) {
-    errors.push(`${label}: src "${entry.src}" が存在しません（${root} 基準）`);
+    errors.push(`${label}: src "${entry.src}" が存在しません（${root} 基準。ファイル未生成なら src を省略して登録し、生成後に update で追記する）`);
   } else if (!srcHasVocab(abs, entry.name)) {
     warnings.push(`${label}: src "${entry.src}" に @vocab: ${entry.name} がありません（実装側に注釈を書くか、src の指し先を見直す）`);
   }

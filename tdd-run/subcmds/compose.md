@@ -116,7 +116,7 @@ TypeScript の型注釈等）。
 発生源で書くこと。あとの突合に持ち越さない。
 
 - **すでに辞書に登録されている概念**（分解で登録した概念 — 装置主語 root X、構造的仮登録の
-  `ui` エントリ等）: `dict-write.js update` で
+  `ui` エントリ、再節合の語彙作業で `src` なしで登録した装置概念等）: `dict-write.js update` で
   `src` にスタブのファイルパスを設定する:
   ```bash
   node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/dict-write.js" update --to <plans_dir>/dictionary.json --name <概念名> <<'EOF'
