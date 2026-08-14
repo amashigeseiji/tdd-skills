@@ -56,6 +56,8 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/acts-search.js" -a -s
 `tests/acceptance/`（相当のディレクトリ）のシナリオ（describe）を列挙し、
 シナリオ → 行為の対応づけを作る。テストを実行し、**現在緑であること**を確認する。
 赤のシナリオは登記候補から外し、完了報告に理由つきで載せる。
+緑の判定は「describe 内に実行されて pass するテストが1件以上ある」こと —
+一部のテストが skip でも残りが実行されて pass していれば witness として有効、全テストが skip の describe は何も検証していないため witness 無しとして保留（手順6）に回す。
 
 **3. 行為の書き起こし**
 
@@ -80,6 +82,9 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/acts-search.js" -a -s
 登記候補の actor が `docs/dictionary.json` に `domain: actor` で無ければ、
 **先に語彙登録ルール（語彙規範 — 表＋承認）で登録する**。
 user-story のロール名と辞書名の表記が揺れる場合は、登記の承認で辞書名へ正規化する。
+
+`context` に書く context.dir は `dict-search.js` の出力で確認する —
+エントリ行の `[<context.dir>/<domain>]` の前半、またはコンテキスト一覧（`dict-search.js -a -s` の「コンテキスト」節）の `[context: <dir>]` がそれにあたる。
 
 actor ごとに表を提示し、承認を得る:
 

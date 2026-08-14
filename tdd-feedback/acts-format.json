@@ -3,7 +3,7 @@
 
   "_ledger_file": "docs/acts.json — トップレベルは { \"version\": \"1\", \"acts\": [ <entry> ] }。actor ごとの森は入れ子構造では持たず、フラットな配列を actor と parent でグループ化した結果として現れる。",
 
-  "_registration_rule": "登記の拍は毎周の成果物レビュー（feedback）。登記判定は行為単位: その周回の操作の事実に現れている ／ findings でその行為に失敗・違和感が帰属されていない ／ witness が緑。利用仮説の照合結果は判断材料であって登記の単位ではない（仮説は行為の集合より広い）。判定の確定は登記の表＋承認が担う。手動確認のみの行為（witness 無し）は v1 では登記しない。actor が docs/dictionary.json に無ければ、先に語彙登録ルール（表＋承認）で登録する。",
+  "_registration_rule": "登記の拍は毎周の成果物レビュー（feedback）。登記判定は行為単位: その周回の操作の事実に現れている ／ findings でその行為に失敗・違和感が帰属されていない ／ witness が緑。witness の緑は、describe 内に実行されて pass するテストが1件以上あることを指す——skip されたテストは何も検証していないため、全テストが skip の describe は（テストランナーが赤を出さなくても）witness 無しとして扱う。利用仮説の照合結果は判断材料であって登記の単位ではない（仮説は行為の集合より広い）。判定の確定は登記の表＋承認が担う。手動確認のみの行為（witness 無し）は v1 では登記しない。actor が docs/dictionary.json に無ければ、先に語彙登録ルール（表＋承認）で登録する。",
 
   "entry": {
     "id": "<act-NNNN。acts-write.js が発番する。手で振らない>",

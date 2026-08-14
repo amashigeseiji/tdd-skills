@@ -14,7 +14,7 @@
     "name": "<概念名（日本語）>",
     "en": "<EnglishName（概念名の直訳を PascalCase で。例: テンプレートマッチャー → TemplateMatcher）>",
     "context": "<context.dir>",
-    "domain": "application | solution | pattern | ui | ui-pattern | design-token",
+    "domain": "application | solution | pattern | ui | ui-pattern | design-token | actor",
     "definition": "<何であるか。他の辞書概念は #概念名 記法で参照する（#で始まり半角スペースで終わる。文末・句点の前も #概念名 。のようにスペースを挟む）>",
     "relations": [
       {
@@ -50,6 +50,8 @@
   },
 
   "_ui_note": "domain: ui は専用テンプレートを持たない（entry と同じ形）。エントリーは常に操作ハンドルである。概念を references すること（対象概念を指す）と、他の操作ハンドルから合成されること（relations に contains で部品ハンドルを持つ。器が中身を保持する関係ではない）の両方がありうる。複合ハンドルは、いまの文脈から切り離して他所でも使えるときに名付ける。空間的な配置（左右・上下等）は書かない——構造的な役割分けは ui-pattern の components が担う。",
+
+  "_actor_note": "domain: actor は entry と同じ形の薄いエントリ。「できる」のツリーで主語に使う行為の担い手（「作成者」「閲覧者」等）。定義だけを持ち、src は null、states / affordances は持たせない（操作は行為の対象であるオブジェクト側の affordances に属する）。context には役割が属するコンテキストの dir を書く。",
 
   "_design_token_note": "domain: design-token は entry と同じ形、context は null。「削除系は警告色」のような意味づけられたトンマナ規約を書く。生の色数値・px値は含めない。プロジェクト全体で横断的に使われるため、tdd-run ではなく /tdd-vocab init で初期抽出し、以降は明示的な見直しなしに使い回す。",
 
