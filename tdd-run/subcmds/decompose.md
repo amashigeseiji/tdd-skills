@@ -5,7 +5,7 @@
 
 ## 入口条件
 
-ルーティング（skill.md）の判定で root が**仮説**（新規型）と承認されて入る。
+ルーティング（skill.md）で `plans/<project>/problem.md` が入口文書と判定されて入る（**新規型** — root は**仮説**）。
 次のいずれかで入る。
 
 - **新規実行** — `plans/<project>/test-tree.md` が存在しない。手順1から始める

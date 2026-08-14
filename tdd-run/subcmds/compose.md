@@ -389,6 +389,7 @@ node "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/depgraph-search.js" --to -d 999 -
 
 `/tdd-userstory run <project>` を実行する。
 `plans/<project>/user-story.md` がなければスキップする。
+再節合型プラン（user-story.md を作らない）では、root の最終検証は挙動保存の検証 — 台帳の witness（＋特性テスト）の緑 — が担う。
 
 **結果ごとの対応:**
 
