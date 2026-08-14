@@ -1,6 +1,6 @@
 # スクリプトのテスト
 
-語彙照合スクリプト（`tdd-vocab/scripts/`・`bin/`）の回帰テスト。
+配布スクリプト（`tdd-vocab/scripts/`・`bin/`）の回帰テスト。
 依存パッケージはなく、Node 標準のテストランナーだけで動く。
 
 ```bash
@@ -27,5 +27,7 @@ node --test tests/*.test.js
 - `vocab-basic` — JS。正常系のほか、`@vocab` 行に注記を続けた行・`src` の指す先に注釈がない概念・
   注釈が別ファイルにある概念・実装装置を持たない `application` の概念を1つずつ含む
 - `vocab-swift` — Swift。`/// @vocab` を走査対象として拾えることの確認用
+- `acts-basic` — 行為の登記簿（`docs/acts.json`）用。actor 2件を持つ辞書・登記3件
+  （parent 持ち・retro 持ちを含む）・witness アンカーの参照先になる `tests/acceptance/`
 
 フィクスチャの実装ファイルのコメントに `@vocab` の文字列を書かないこと（パーサーが拾ってしまう）。

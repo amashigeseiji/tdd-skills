@@ -1,4 +1,4 @@
-# /tdd-vocab migrate — 辞書フォーマット移行
+# /tdd-update vocab — 辞書フォーマット移行
 
 ## 目的
 

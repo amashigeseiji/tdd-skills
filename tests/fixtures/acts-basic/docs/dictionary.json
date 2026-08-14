@@ -1,0 +1,40 @@
+{
+  "version": "1",
+  "contexts": [
+    { "dir": "blog", "name": "ブログ", "description": "記事の執筆と配信" }
+  ],
+  "entries": [
+    {
+      "name": "執筆者",
+      "en": "Writer",
+      "context": "blog",
+      "domain": "actor",
+      "definition": "記事を書き、公開まで運ぶ人。",
+      "relations": [{ "type": "references", "target": "記事", "note": "" }]
+    },
+    {
+      "name": "管理者",
+      "en": "Administrator",
+      "context": "blog",
+      "domain": "actor",
+      "definition": "サイト全体の設定と公開状態を司る人。",
+      "relations": [{ "type": "references", "target": "記事", "note": "" }]
+    },
+    {
+      "name": "記事",
+      "en": "Article",
+      "context": "blog",
+      "domain": "application",
+      "definition": "読み手に届ける文章のまとまり。",
+      "relations": [{ "type": "references", "target": "記事レンダラー", "note": "" }]
+    },
+    {
+      "name": "記事レンダラー",
+      "en": "ArticleRenderer",
+      "context": "blog",
+      "domain": "solution",
+      "definition": "#記事 を HTML に変換する装置。",
+      "relations": [{ "type": "references", "target": "記事", "note": "" }]
+    }
+  ]
+}

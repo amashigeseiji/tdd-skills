@@ -1,0 +1,30 @@
+{
+  "version": "1",
+  "acts": [
+    {
+      "id": "act-0001",
+      "actor": "執筆者",
+      "claim": "記事を下書きとして保存できる",
+      "context": "blog",
+      "witness": { "acceptance": ["tests/acceptance/draft.spec.js#記事の下書き > 保存できる"] },
+      "settled": { "date": "2026-08-01", "project": "draft-saving", "devices": ["記事レンダラー"] }
+    },
+    {
+      "id": "act-0002",
+      "actor": "執筆者",
+      "claim": "記事を公開できる",
+      "context": "blog",
+      "witness": { "acceptance": ["tests/acceptance/publish.spec.js#記事の公開 > 公開できる"] },
+      "settled": { "date": "2026-08-02", "project": "publishing" }
+    },
+    {
+      "id": "act-0003",
+      "actor": "執筆者",
+      "claim": "公開の日時を予約できる",
+      "parent": "act-0002",
+      "context": "blog",
+      "witness": { "acceptance": ["tests/acceptance/publish.spec.js#記事の公開 > 公開日時を予約できる"] },
+      "settled": { "date": "2026-08-02", "project": "publishing", "retro": true }
+    }
+  ]
+}

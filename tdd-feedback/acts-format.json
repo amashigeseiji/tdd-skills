@@ -1,0 +1,34 @@
+{
+  "_note": "行為の登記簿 docs/acts.json のエントリを書くときのテンプレート。登記時（tdd-feedback の成果物レビュー、遡及登記手続き）に Read する。台帳は「使用で清算された挙動主張の登記簿」であり、載っていること自体が清算済みを意味する。緑/赤は持たない（通っているかどうかは常にテスト実行から導出する）。登記するのは actor の行為（行為層）のみで、装置（能力層）は載せない——名前は辞書、構造は依存グラフ、証拠はテストファイルが持つ。読み書きは bin/acts-write.js / bin/acts-search.js 経由で行い、手書きしない。背景の構想は docs/references/2026-08-07-act-ledger.md。",
+
+  "_ledger_file": "docs/acts.json — トップレベルは { \"version\": \"1\", \"acts\": [ <entry> ] }。actor ごとの森は入れ子構造では持たず、フラットな配列を actor と parent でグループ化した結果として現れる。",
+
+  "_registration_rule": "登記の拍は毎周の成果物レビュー（feedback）。登記判定は行為単位: その周回の操作の事実に現れている ／ findings でその行為に失敗・違和感が帰属されていない ／ witness が緑。利用仮説の照合結果は判断材料であって登記の単位ではない（仮説は行為の集合より広い）。判定の確定は登記の表＋承認が担う。手動確認のみの行為（witness 無し）は v1 では登記しない。actor が docs/dictionary.json に無ければ、先に語彙登録ルール（表＋承認）で登録する。",
+
+  "entry": {
+    "id": "<act-NNNN。acts-write.js が発番する。手で振らない>",
+    "actor": "<辞書の actor 名（docs/dictionary.json に存在すること）。user-story のロール名と表記が揺れる場合は登記の承認で辞書名へ正規化する>",
+    "claim": "<行為の述語（例: 記事を下書きとして保存できる）。actor は別フィールドなので主語は含めない。文言は再清算で変わりうるため、引用の同一性は文字列でなく id が担う>",
+    "parent": "<任意。この行為がその一部として現れる上位行為の id。遡及エントリは原則フラット（成層以前のツリーに行為層の記述が無いため）>",
+    "context": "<任意。辞書の context.dir>",
+    "witness": {
+      "_note": "生きた参照。acceptance は配列——1つの行為が複数の describe・複数のファイルに割れることがある。アンカーは <レポジトリ相対のテストファイルパス>#<describe表題> で、describe の入れ子は ' > ' 区切り。表題は全文一致——文言変更でリンクが切れるのは意図通り（acts-write.js check がリンク切れを検出する）。テストファイルの置き場所・拡張子・テストランナーは規定しない（レポジトリごとの事情に委ねる）。受け入れテストであるという意味づけはキー名が担う。",
+      "acceptance": ["<テストファイルパス>#<describe表題>"]
+    },
+    "settled": {
+      "_note": "清算時の証拠スナップショット。不変。生きた「いま何が支えているか」は refactor セッションが依存グラフから導出し、記録された当時の支えとの差分が被覆のドリフトを教える。devices / unitTests の遡及補完は best-effort——生きているテストファイル・アーカイブと突き合わせて実在確認できたものだけ書き、推測で写経しない。",
+      "date": "<清算日 YYYY-MM-DD。通常は feedback クローズ（成果物レビュー）の日。アーカイブ遡及（retro: true）では元の findings の日時。実使用遡及（evidence: in-use）では登記日——成立した歴史的日付は不明であり、偽の精度で過去日付を書かない>",
+      "project": "<plans/<project> のプロジェクト名。アーカイブへのリンクを兼ねる>",
+      "devices": ["<任意。清算時にこの行為を支えていた装置概念名（辞書名）>"],
+      "unitTests": ["<任意。<テストファイルパス>#<describe経路>（入れ子は ' > ' 区切り）>"],
+      "retro": "<任意。遡及登記なら true。清算の拍ではなく後から書いたことを示し、devices / unitTests の精度の但し書きを兼ねる>",
+      "evidence": "<任意。findings（既定・省略時） | in-use。in-use は tdd-skills 導入以前から実使用で成立していた挙動の遡及（findings が存在しない清算）に使う>"
+    }
+  },
+
+  "_required": "必須: id / actor / claim / witness.acceptance（1件以上） / settled.date / settled.project。任意: parent / context / settled.devices / settled.unitTests / settled.retro / settled.evidence。",
+
+  "_settled_provenance": "settled の来歴は3形。通常登記: retro・evidence とも省略、date は成果物レビューの日。アーカイブ遡及: retro: true、date は元の findings の日時。実使用遡及: retro: true + evidence: in-use、date は登記日。",
+
+  "_supersede_note": "supersede（再清算による置き換え）は未設計。v1 は防衛線のみ: 同一 actor で claim が同一・近接する既存エントリを acts-write.js が検出したら、書き込まずに候補を提示して止まる。上書きの判断はユーザーに諮る。この停止の実例が supersede 本設計の材料になる。"
+}
