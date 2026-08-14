@@ -3,8 +3,8 @@
 #   find-config.sh             -> <meta> のパスを1行出力（従来互換）
 #   find-config.sh <project>   -> META= / WORK_REPO= / PLANS_DIR= の3行を出力
 #
-# <project> 指定時は problem.md の **作業レポジトリ:**（名前）から作業リポジトリの
-# 絶対パスを解決する。解決順:
+# <project> 指定時は入口文書（problem.md または diagnosis.md）の **作業レポジトリ:**（名前）
+# から作業リポジトリの絶対パスを解決する。解決順:
 #   1. フィールドなし -> META と同じ（単一レポ構成）
 #   2. <meta>/<名前> が存在 -> それ
 #   3. <meta>/.claude/tdd/config.local.json の repos.<名前>（マシンごと・git 非追跡）
@@ -26,14 +26,17 @@ if [ -z "$project" ]; then
   exit 0
 fi
 
-problem="$meta/plans/$project/problem.md"
-if [ ! -f "$problem" ]; then
-  echo "problem.md が見つかりません: $problem" >&2
+entry=""
+for name in problem.md diagnosis.md; do
+  [ -f "$meta/plans/$project/$name" ] && entry="$meta/plans/$project/$name" && break
+done
+if [ -z "$entry" ]; then
+  echo "入口文書（problem.md / diagnosis.md）が見つかりません: $meta/plans/$project/" >&2
   exit 2
 fi
 
 field() {
-  grep "^\*\*$1:" "$problem" | head -1 | sed "s/^\*\*$1:\*\*[[:space:]]*//" | sed 's/[[:space:]]*$//'
+  grep "^\*\*$1:" "$entry" | head -1 | sed "s/^\*\*$1:\*\*[[:space:]]*//" | sed 's/[[:space:]]*$//'
 }
 
 repo_name=$(field "作業レポジトリ")

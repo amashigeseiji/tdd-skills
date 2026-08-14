@@ -42,8 +42,8 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh" <project>
 { "repos": { "<name>": "/absolute/path/answered/by/user" } }
 ```
 
-そのあと find-config.sh を再実行する。**絶対パスを problem.md に書かない** —
-problem.md はコミットされるため、マシンをまたぐと壊れる。
+そのあと find-config.sh を再実行する。**絶対パスを入口文書（problem.md・diagnosis.md）に書かない** —
+入口文書はコミットされるため、マシンをまたぐと壊れる。
 
 ### scaffold.sh の確認
 

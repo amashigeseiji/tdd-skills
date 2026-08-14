@@ -37,7 +37,7 @@ bash "$(realpath "${CLAUDE_SKILL_DIR}")/../bin/find-config.sh" <project>
 - **WORK_REPO が `UNRESOLVED:<名前>` の場合**: 作業レポジトリが `<meta>` のサブディレクトリでも
   `.claude/tdd/config.local.json`（マシンごと・git 非追跡）の登録済みでもない。ユーザーに絶対パスを
   聞き、ディレクトリの存在を確認してから `<meta>/.claude/tdd/config.local.json` の `repos.<名前>` に
-  保存し、find-config.sh を再実行する。**problem.md に絶対パスを書かない**（コミットされるため）
+  保存し、find-config.sh を再実行する。**入口文書（problem.md・diagnosis.md）に絶対パスを書かない**（コミットされるため）
 - **stderr に旧フィールド `**作業ディレクトリ:**` で解決した旨が出た場合**: 動作はするが、
   config.local.json への保存とフィールド削除（移行）を提案する
 
