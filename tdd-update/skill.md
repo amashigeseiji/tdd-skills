@@ -1,5 +1,5 @@
 ---
-argument-hint: [vocab|acts]
+argument-hint: [vocab|acts|spec]
 ---
 
 # /tdd-update - スキルを最新版に更新
@@ -14,6 +14,7 @@ tdd-skills リポジトリを `git pull` し、新規スキルのシンボリッ
 | `/tdd-update` | 任意 | スキル本体を更新し、差分を報告する |
 | `/tdd-update vocab` | 更新後、旧フォーマットの辞書が残っているとき | 辞書フォーマット移行（`dictionary.md` → `dictionary.json` 変換、旧エントリへの `en` 一括付与） |
 | `/tdd-update acts` | 台帳導入以前から tdd-skills で開発してきたレポジトリに、一度だけ | 行為の登記簿（`docs/acts.json`）への遡及登記 |
+| `/tdd-update spec` | spec への反映の拍が無かった間にアーカイブされたプランがあるレポジトリに、一度だけ | spec（`docs/spec.md` または `docs/spec/<context>.md`）の遡及整備 |
 
 ## サブコマンドの実行
 
@@ -23,6 +24,7 @@ tdd-skills リポジトリを `git pull` し、新規スキルのシンボリッ
 |------------|---------|
 | `vocab` | `${CLAUDE_SKILL_DIR}/subcmds/vocab.md` |
 | `acts`  | `${CLAUDE_SKILL_DIR}/subcmds/acts.md` |
+| `spec`  | `${CLAUDE_SKILL_DIR}/subcmds/spec.md` |
 
 各サブコマンドの冒頭で CWD から上に向かって `.claude/tdd/config.json` を探し、メタレポルートを確定する:
 
@@ -95,8 +97,12 @@ if [ -n "$META" ]; then
   if [ ! -f "$META/docs/acts.json" ] && [ -d "$META/plans/archives" ]; then
     echo "台帳未導入（plans/archives にアーカイブ済みプランあり）"
   fi
+  if [ ! -f "$META/docs/spec.md" ] && [ ! -d "$META/docs/spec" ] && [ -d "$META/plans/archives" ]; then
+    echo "spec 未整備（plans/archives にアーカイブ済みプランあり）"
+  fi
 fi
 ```
 
 - 旧辞書が見つかった場合は `/tdd-update vocab` を案内する。
 - 台帳未導入が出た場合は `/tdd-update acts`（遡及登記）を案内する。実行するかどうかはユーザーが決める。
+- spec 未整備が出た場合は `/tdd-update spec`（遡及整備）を案内する。spec が在っても長く更新されていないレポジトリは機械的には検出できないので、その場合はユーザーの判断で実行する。

@@ -21,6 +21,8 @@ cat <plans_dir>/problem.md
 cat <plans_dir>/user-story.md 2>/dev/null
 ```
 
+`problem.md` の `**関連設計資料:**` が spec（`docs/spec.md` / `docs/spec/<context>.md`）の節を指していれば、その節を**現在の契約**として読む（既存の振る舞いを変えるプランでは、何が成り立っていて何を変えるのかの出発点になる）。spec 全体はロードしない。spec を書くのは /tdd-feedback の仕事であり、分解・合成では書かない。
+
 **あわせて次の三つの規範を冒頭で読む**（リンク先の参照ではなく、実際にファイルを読む）:
 
 - `../norms/vocabulary.md` — 辞書の読み書き作法、語彙登録ルール、不可逆性チェック

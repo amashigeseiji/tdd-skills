@@ -118,6 +118,7 @@ findings.md が残っているのは、一周後に同一プランへ差し戻�
 ### 進行規則
 
 - **入口文書（problem.md・diagnosis.md）を書き換えない**（それは /tdd-problem・/tdd-refactor の仕事）
+- **spec（docs/spec.md・docs/spec/）を書かない**（使用で清算されてから /tdd-feedback の成果物レビューが書く。プロジェクト側の手順に「実装後に spec を更新」が残っていれば、それが清算前の記述になることを伝え、feedback に回すことを提案する）
 - **使える状態まで持っていく**（本番デプロイは別フェーズ）
 - **TodoWrite を使う**（実装タスクを追跡する）
 

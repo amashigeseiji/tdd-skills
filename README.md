@@ -51,7 +51,9 @@ Claude Code で、問題定義・語彙定義・実装を分離して開発を�
 /tdd-feedback
 ```
 
-利用インタビュー（何が起きたかの事実収集）、成果物レビュー（利用の事実に照らした語彙・ソリューション構造の評価と wip 語彙の昇格判断）の順に進みます。発見は `plans/<project>/findings.md` にまとめられ、性質によって次の問題定義セッションか実装セッションへ戻ります。ズレがあれば次のループが始まります。
+利用インタビュー（何が起きたかの事実収集）、成果物レビュー（利用の事実に照らした語彙・ソリューション構造の評価と wip 語彙の昇格判断、行為の登記、spec への反映）の順に進みます。発見は `plans/<project>/findings.md` にまとめられ、性質によって次の問題定義セッションか実装セッションへ戻ります。ズレがあれば次のループが始まります。
+
+`docs/` に残るものは使用で清算されたものだけです。名前と関係は辞書（`docs/dictionary.json`）、行為の証拠は台帳（`docs/acts.json`）、依存の網羅は接続マップ、そして開発者と AI エージェントが読む説明が spec（`docs/spec.md` または `docs/spec/<context>.md`）です。spec はこのフェーズでだけ書きます。
 
 このセッションはクロージングも兼ねています。ループを完了と見なした場合、`plans/<project>/` 以下のファイル一式がアーカイブされます。
 
@@ -76,7 +78,7 @@ Claude Code で、問題定義・語彙定義・実装を分離して開発を�
 | `/tdd-init` | 新規プロジェクト導入時の初期化（config・scaffold・vocab） | 初回のみ |
 | `/tdd-workflow` | workflow.md に従って plan 選択から archive までを orchestrate する | `problem.md` 作成後 |
 | `/tdd-refactor` | 辞書・テスト・実装を横断して理解とコードのズレを転写する | 任意のタイミング |
-| `/tdd-update` | `git pull` + 新規スキルのシンボリックリンク追加 | スキル更新時 |
+| `/tdd-update` | `git pull` + 新規スキルのシンボリックリンク追加。`vocab`／`acts`／`spec` で成果物の移行・遡及整備 | スキル更新時 |
 
 ### 内部で呼ばれるコマンド（直接呼ぶことも可）
 
@@ -97,6 +99,8 @@ plans/<project>/
 
 docs/
   dictionary.json     # 安定した語彙ネットワーク
+  acts.json           # 行為の登記簿（使用で清算された行為と witness）
+  spec.md             # 清算済みの振る舞いと機構の現在形の説明（context ごとに docs/spec/<context>.md に小分けしてもよい）
 
 tests/acceptance/
   <project>.spec.ts # 受け入れテスト
