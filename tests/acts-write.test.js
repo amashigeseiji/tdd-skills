@@ -168,6 +168,88 @@ test('防衛線は同一 actor に限る（別 actor の同一 claim は登記�
   assert.strictEqual(ledgerActs(repo).length, 4);
 });
 
+// ---- witness-add ------------------------------------------------------
+
+function witnessInput(overrides) {
+  return JSON.stringify({
+    acceptance: ['tests/acceptance/draft.spec.js#記事の下書き > 保存できる'],
+    date: '2026-08-16',
+    project: 'publish-by-api',
+    ...overrides,
+  });
+}
+
+function witnessAdd(repo, actId, json, extraArgs = []) {
+  fs.writeFileSync(path.join(repo, 'input.json'), json);
+  return run(WRITE, ['witness-add', actId, '--file', 'input.json', ...extraArgs], repo);
+}
+
+test('witness-add は既存の行為に witness を足し、resettled に清算スナップショットを積む', () => {
+  const repo = copyFixture('acts-basic');
+  const { code, out } = witnessAdd(repo, 'act-0002', witnessInput({}));
+  assert.strictEqual(code, 0, out);
+  const acts = ledgerActs(repo);
+  assert.strictEqual(acts.length, 3);
+  const act = acts.find(a => a.id === 'act-0002');
+  assert.deepStrictEqual(act.witness.acceptance, [
+    'tests/acceptance/publish.spec.js#記事の公開 > 公開できる',
+    'tests/acceptance/draft.spec.js#記事の下書き > 保存できる',
+  ]);
+  // settled（初回清算）は変わらない
+  assert.deepStrictEqual(act.settled, { date: '2026-08-02', project: 'publishing' });
+  assert.deepStrictEqual(act.resettled, [{
+    date: '2026-08-16',
+    project: 'publish-by-api',
+    acceptance: ['tests/acceptance/draft.spec.js#記事の下書き > 保存できる'],
+  }]);
+  // 足した後の台帳は check を通る
+  const check = run(WRITE, ['check'], repo);
+  assert.strictEqual(check.code, 0, check.out);
+});
+
+test('witness-add は台帳にない行為には足せない', () => {
+  const repo = copyFixture('acts-basic');
+  const { code, out } = witnessAdd(repo, 'act-0099', witnessInput({}));
+  assert.strictEqual(code, 1);
+  assert.ok(out.includes('act-0099'), out);
+});
+
+test('witness-add は実在しないアンカーを足せない', () => {
+  const repo = copyFixture('acts-basic');
+  const { code, out } = witnessAdd(repo, 'act-0002', witnessInput({
+    acceptance: ['tests/acceptance/publish.spec.js#記事の公開 > API で公開できる'],
+  }));
+  assert.strictEqual(code, 1);
+  assert.ok(out.includes('リンク切れ'), out);
+  assert.strictEqual(ledgerActs(repo).find(a => a.id === 'act-0002').witness.acceptance.length, 1);
+});
+
+test('witness-add は既にある witness を重複して足せない', () => {
+  const repo = copyFixture('acts-basic');
+  const { code, out } = witnessAdd(repo, 'act-0002', witnessInput({
+    acceptance: ['tests/acceptance/publish.spec.js#記事の公開 > 公開できる'],
+  }));
+  assert.strictEqual(code, 1);
+  assert.ok(out.includes('既に witness にあります'), out);
+});
+
+test('witness-add は date / project が無いと書かない', () => {
+  const repo = copyFixture('acts-basic');
+  const { code, out } = witnessAdd(repo, 'act-0002', witnessInput({ date: undefined, project: undefined }));
+  assert.strictEqual(code, 1);
+  assert.ok(out.includes('date'), out);
+  assert.ok(out.includes('project'), out);
+  assert.strictEqual(ledgerActs(repo).find(a => a.id === 'act-0002').resettled, undefined);
+});
+
+test('check は resettled の壊れたスナップショットを検出する', () => {
+  const repo = copyFixture('acts-basic');
+  mutateLedger(repo, l => { l.acts[1].resettled = [{ date: '2026/08/16', project: 'x', acceptance: [] }]; });
+  const { code, out } = run(WRITE, ['check'], repo);
+  assert.strictEqual(code, 1);
+  assert.ok(out.includes('resettled[0]'), out);
+});
+
 // ---- check ------------------------------------------------------------
 
 test('check は正しい台帳で緑になる', () => {

@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 //
 // Usage:
-//   acts-write.js add   [--to <acts.json>] [--file <entry.json>] [--allow-similar]
-//   acts-write.js check [<acts.json>]
+//   acts-write.js add         [--to <acts.json>] [--file <entry.json>] [--allow-similar]
+//   acts-write.js witness-add <act-id> [--to <acts.json>] [--file <input.json>]
+//   acts-write.js check       [<acts.json>]
 //
 // 行為の登記簿（docs/acts.json）への書き込み専用スクリプト。検索は acts-search.js。
 // すべての書き込みは検証を通過しないと実行されない。詳細は --help を参照。
@@ -10,9 +11,10 @@
 import fs from 'fs';
 import path from 'path';
 
-const ENTRY_FIELDS = ['id', 'actor', 'claim', 'parent', 'context', 'witness', 'settled'];
+const ENTRY_FIELDS = ['id', 'actor', 'claim', 'parent', 'context', 'witness', 'settled', 'resettled'];
 const WITNESS_FIELDS = ['acceptance'];
 const SETTLED_FIELDS = ['date', 'project', 'devices', 'unitTests', 'retro', 'evidence'];
+const RESETTLED_FIELDS = ['date', 'project', 'acceptance', 'devices', 'unitTests'];
 const EVIDENCE_VALUES = ['findings', 'in-use'];
 
 // 防衛線の近接判定のしきい値（文字バイグラムの Dice 係数）。
@@ -248,33 +250,39 @@ function validateEntry(entry, { dictionary, knownIds, root, isWrite }) {
         errors.push(`${label}: settled.evidence: "in-use" は実使用遡及の印なので settled.retro: true と併記する`);
       }
     }
-    if (s.devices !== undefined) {
-      if (!Array.isArray(s.devices) || s.devices.some(d => !isNonEmptyString(d))) {
-        errors.push(`${label}: settled.devices は非空文字列（装置概念名）の配列にする`);
-      } else if (isWrite) {
-        for (const d of s.devices) {
-          if (!dictionary.entries.some(e => e.name === d)) {
-            warnings.push(`${label}: settled.devices の "${d}" が辞書にありません（実在確認できたものだけ書く）`);
-          }
-        }
-      }
-    }
-    if (s.unitTests !== undefined) {
-      if (!Array.isArray(s.unitTests) || s.unitTests.some(t => !isNonEmptyString(t))) {
-        errors.push(`${label}: settled.unitTests はアンカー文字列の配列にする`);
-      } else if (isWrite) {
-        // settled は不変のスナップショットなので check ではリンクを追わない。
-        // 書き込み時だけ、いま書こうとしている参照の実在を警告レベルで確かめる。
-        for (const t of s.unitTests) {
-          const filePart = t.includes('#') ? t.slice(0, t.indexOf('#')) : t;
-          if (!fs.existsSync(path.join(root, filePart))) {
-            warnings.push(`${label}: settled.unitTests の "${filePart}" が存在しません（実在確認できたものだけ書く）`);
-          }
-        }
-      }
-    }
+    const r = validateSnapshotEvidence(s, `${label}: settled`, { dictionary, root, isWrite });
+    errors.push(...r.errors);
+    warnings.push(...r.warnings);
     for (const f of Object.keys(s)) {
       if (!SETTLED_FIELDS.includes(f)) warnings.push(`${label}: settled の未知のフィールド "${f}"`);
+    }
+  }
+
+  if (entry.resettled !== undefined) {
+    if (!Array.isArray(entry.resettled)) {
+      errors.push(`${label}: resettled は再清算スナップショットの配列にする（witness-add が書く。手で書かない）`);
+    } else {
+      entry.resettled.forEach((rs, i) => {
+        const rl = `${label}: resettled[${i}]`;
+        if (!rs || typeof rs !== 'object' || Array.isArray(rs)) {
+          errors.push(`${rl}: date / project / acceptance を持つオブジェクトにする`);
+          return;
+        }
+        if (!isNonEmptyString(rs.date) || !/^\d{4}-\d{2}-\d{2}$/.test(rs.date)) {
+          errors.push(`${rl}: date は YYYY-MM-DD にする（現在: ${JSON.stringify(rs.date)}）`);
+        }
+        if (!isNonEmptyString(rs.project)) errors.push(`${rl}: project が必要です`);
+        // resettled.acceptance は「そのとき足した witness」のスナップショット。生きた参照は witness.acceptance が担うので、check ではリンクを追わない。
+        if (!Array.isArray(rs.acceptance) || rs.acceptance.length === 0 || rs.acceptance.some(a => !isNonEmptyString(a))) {
+          errors.push(`${rl}: acceptance は1件以上のアンカー文字列の配列にする`);
+        }
+        const r = validateSnapshotEvidence(rs, rl, { dictionary, root, isWrite });
+        errors.push(...r.errors);
+        warnings.push(...r.warnings);
+        for (const f of Object.keys(rs)) {
+          if (!RESETTLED_FIELDS.includes(f)) warnings.push(`${rl}: 未知のフィールド "${f}"`);
+        }
+      });
     }
   }
 
@@ -282,6 +290,38 @@ function validateEntry(entry, { dictionary, knownIds, root, isWrite }) {
     if (!ENTRY_FIELDS.includes(f)) warnings.push(`${label}: 未知のフィールド "${f}"`);
   }
 
+  return { errors, warnings };
+}
+
+// settled / resettled に共通の証拠フィールド（devices / unitTests）の検証。
+// どちらも不変のスナップショットなので check ではリンクを追わない。
+// 書き込み時だけ、いま書こうとしている参照の実在を警告レベルで確かめる。
+function validateSnapshotEvidence(s, label, { dictionary, root, isWrite }) {
+  const errors = [];
+  const warnings = [];
+  if (s.devices !== undefined) {
+    if (!Array.isArray(s.devices) || s.devices.some(d => !isNonEmptyString(d))) {
+      errors.push(`${label}.devices は非空文字列（装置概念名）の配列にする`);
+    } else if (isWrite) {
+      for (const d of s.devices) {
+        if (!dictionary.entries.some(e => e.name === d)) {
+          warnings.push(`${label}.devices の "${d}" が辞書にありません（実在確認できたものだけ書く）`);
+        }
+      }
+    }
+  }
+  if (s.unitTests !== undefined) {
+    if (!Array.isArray(s.unitTests) || s.unitTests.some(t => !isNonEmptyString(t))) {
+      errors.push(`${label}.unitTests はアンカー文字列の配列にする`);
+    } else if (isWrite) {
+      for (const t of s.unitTests) {
+        const filePart = t.includes('#') ? t.slice(0, t.indexOf('#')) : t;
+        if (!fs.existsSync(path.join(root, filePart))) {
+          warnings.push(`${label}.unitTests の "${filePart}" が存在しません（実在確認できたものだけ書く）`);
+        }
+      }
+    }
+  }
   return { errors, warnings };
 }
 
@@ -346,7 +386,7 @@ function cmdAdd(opts) {
     fail('add の入力はエントリ1件のオブジェクトにしてください（登記は一件ずつ、表＋承認を経て行う）');
   }
   if (entry.id !== undefined) {
-    fail('id はスクリプトが発番します（入力に id を含めない。既存エントリの変更は直接相談してください）');
+    fail('id はスクリプトが発番します（入力に id を含めない。既存エントリへの witness 追加は witness-add を使う）');
   }
 
   const ledger = loadLedger(ledgerPath);
@@ -373,14 +413,76 @@ function cmdAdd(opts) {
   const { errors, warnings } = validateEntry(entry, { dictionary, knownIds, root, isWrite: true });
   report(errors, warnings, '書き込みは行われませんでした');
 
-  // 保存はスキーマの正規のフィールド順に整える（未知フィールドは警告済みのうえ末尾に残す）
-  const ordered = {};
-  for (const f of ENTRY_FIELDS) if (entry[f] !== undefined) ordered[f] = entry[f];
-  for (const k of Object.keys(entry)) if (!(k in ordered)) ordered[k] = entry[k];
-  ledger.acts.push(ordered);
+  ledger.acts.push(orderFields(entry));
   saveLedger(ledgerPath, ledger);
   console.log(`${ledgerPath} に登記しました:`);
   console.log(`- ${entry.id}: ${entry.actor} — ${entry.claim}`);
+}
+
+// 保存はスキーマの正規のフィールド順に整える（未知フィールドは警告済みのうえ末尾に残す）
+function orderFields(entry) {
+  const ordered = {};
+  for (const f of ENTRY_FIELDS) if (entry[f] !== undefined) ordered[f] = entry[f];
+  for (const k of Object.keys(entry)) if (!(k in ordered)) ordered[k] = entry[k];
+  return ordered;
+}
+
+// 既存の行為に witness を足す。行為の成立条件（手段・環境）が広がっただけで claim が変わらないとき、
+// 行為を複製せずに新しい受け入れテストを目撃者として加える。settled（初回清算のスナップショット）は
+// 触らず、追加分の清算は resettled に積む。
+function cmdWitnessAdd(opts, actId) {
+  const root = findMetaRepo();
+  const ledgerPath = opts.to || path.join(root, 'docs/acts.json');
+  if (!isNonEmptyString(actId)) fail('witness-add には対象の行為の id（act-NNNN）を指定してください');
+  const input = readInput(opts.file);
+  if (Array.isArray(input) || typeof input !== 'object' || input === null) {
+    fail('witness-add の入力は { "acceptance": [...], "date": "...", "project": "..." } のオブジェクトにしてください');
+  }
+
+  const ledger = loadLedger(ledgerPath);
+  const dictionary = loadDict(path.join(root, 'docs/dictionary.json'));
+  const act = ledger.acts.find(a => a.id === actId);
+  if (!act) fail(`${actId} が台帳（${ledgerPath}）にありません`);
+
+  const errors = [];
+  const warnings = [];
+  const label = `エントリ ${actId}`;
+  const existing = new Set(act.witness?.acceptance ?? []);
+
+  if (!Array.isArray(input.acceptance) || input.acceptance.length === 0) {
+    errors.push(`${label}: acceptance は1件以上のアンカーの配列にする`);
+  } else {
+    const seen = new Set();
+    for (const anchor of input.acceptance) {
+      errors.push(...validateAnchor(anchor, root, label));
+      if (existing.has(anchor)) errors.push(`${label}: アンカー "${anchor}" は既に witness にあります`);
+      if (seen.has(anchor)) errors.push(`${label}: アンカー "${anchor}" が入力内で重複しています`);
+      seen.add(anchor);
+    }
+  }
+  if (!isNonEmptyString(input.date) || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) {
+    errors.push(`${label}: date は YYYY-MM-DD にする（現在: ${JSON.stringify(input.date)}）`);
+  }
+  if (!isNonEmptyString(input.project)) errors.push(`${label}: project が必要です`);
+  const r = validateSnapshotEvidence(input, `${label}: resettled`, { dictionary, root, isWrite: true });
+  errors.push(...r.errors);
+  warnings.push(...r.warnings);
+  for (const f of Object.keys(input)) {
+    if (!RESETTLED_FIELDS.includes(f)) warnings.push(`${label}: 未知のフィールド "${f}"`);
+  }
+  report(errors, warnings, '書き込みは行われませんでした');
+
+  const snapshot = {};
+  for (const f of RESETTLED_FIELDS) if (input[f] !== undefined) snapshot[f] = input[f];
+  act.witness = act.witness || {};
+  act.witness.acceptance = [...(act.witness.acceptance ?? []), ...input.acceptance];
+  act.resettled = [...(act.resettled ?? []), snapshot];
+  ledger.acts = ledger.acts.map(a => (a.id === actId ? orderFields(act) : a));
+  saveLedger(ledgerPath, ledger);
+  console.log(`${ledgerPath} の ${actId} に witness を足しました:`);
+  console.log(`- ${act.id}: ${act.actor} — ${act.claim}`);
+  for (const anchor of input.acceptance) console.log(`  + ${anchor}`);
+  console.log(`  resettled: ${input.date} / ${input.project}`);
 }
 
 function cmdCheck(opts, target) {
@@ -426,8 +528,9 @@ function main() {
 
   if (args.length === 0 || args.includes('--help') || args.includes('-h')) {
     console.log(`Usage:
-  acts-write.js add   [--to <acts.json>] [--file <entry.json>] [--allow-similar]
-  acts-write.js check [<acts.json>]
+  acts-write.js add         [--to <acts.json>] [--file <entry.json>] [--allow-similar]
+  acts-write.js witness-add <act-id> [--to <acts.json>] [--file <input.json>]
+  acts-write.js check       [<acts.json>]
 
 行為の登記簿（docs/acts.json）への書き込み専用スクリプト。検索は acts-search.js。
 台帳は「使用で清算された挙動主張の登記簿」——載っていること自体が清算済みを意味し、
@@ -443,20 +546,34 @@ add:
   入力: --file がなければ stdin から JSON を読む。末尾カンマは許容。
 
   防衛線: 同一 actor で claim が同一・近接する既存エントリを検出したら、
-  書き込まずに候補を表示して終了する。上書き（supersede）は未設計——
-  判断はユーザーに諮る。別の行為だと確認できた場合のみ --allow-similar で
-  近接の停止を越えられる（同一 claim は越えられない）。
+  書き込まずに候補を表示して終了する。行為の成立条件（手段・環境）が広がった
+  だけで claim が同じなら witness-add を使う。claim の置き換え（supersede）は
+  未設計——判断はユーザーに諮る。別の行為だと確認できた場合のみ --allow-similar
+  で近接の停止を越えられる（同一 claim は越えられない）。
+
+witness-add:
+  既存の行為に witness（受け入れテスト）を足す。既存の行為が新しい手段・環境でも
+  成立することを目撃したとき、行為を複製せずにこちらを使う。
+  入力（stdin または --file）: { "acceptance": [<アンカー>...], "date": "YYYY-MM-DD",
+  "project": "<プラン名>", "devices": [...], "unitTests": [...] }（devices / unitTests は任意）。
+  検証: 行為が台帳にあること、アンカーが実在し既存の witness と重複しないこと、date / project。
+  書き込み: witness.acceptance にアンカーを追加し、resettled 配列に清算スナップショット
+  { date, project, acceptance, devices?, unitTests? } を積む。settled（初回清算）は変えない。
 
 check:
   書き込まずに台帳全体を同じ規則で検証する。エラーがあれば exit 1。
   witness は生きた参照なのでリンク切れ（ファイル不在・describe 表題の不一致）を
-  検出する。settled は清算時のスナップショット（不変）なのでリンクは追わない。
+  検出する。settled / resettled は清算時のスナップショット（不変）なのでリンクは追わない。
 
 Examples:
   node acts-write.js add <<'EOF'
   { "actor": "執筆者", "claim": "記事を下書きとして保存できる", "context": "blog",
     "witness": { "acceptance": ["tests/acceptance/draft.spec.js#記事の下書き > 保存できる"] },
     "settled": { "date": "2026-08-01", "project": "draft-saving" } }
+  EOF
+  node acts-write.js witness-add act-0002 <<'EOF'
+  { "acceptance": ["tests/acceptance/publish-by-api.spec.js#記事の公開（API 手段） > 公開できる"],
+    "date": "2026-08-16", "project": "publish-by-api" }
   EOF
   node acts-write.js check`);
     process.exit(0);
@@ -475,8 +592,9 @@ Examples:
   }
 
   if (cmd === 'add') cmdAdd(opts);
+  else if (cmd === 'witness-add') cmdWitnessAdd(opts, positional[0]);
   else if (cmd === 'check') cmdCheck(opts, positional[0]);
-  else fail(`未知のサブコマンド: ${cmd}（add | check）`);
+  else fail(`未知のサブコマンド: ${cmd}（add | witness-add | check）`);
 }
 
 main();

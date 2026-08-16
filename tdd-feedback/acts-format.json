@@ -23,12 +23,22 @@
       "unitTests": ["<任意。<テストファイルパス>#<describe経路>（入れ子は ' > ' 区切り）>"],
       "retro": "<任意。遡及登記なら true。清算の拍ではなく後から書いたことを示し、devices / unitTests の精度の但し書きを兼ねる>",
       "evidence": "<任意。findings（既定・省略時） | in-use。in-use は tdd-skills 導入以前から実使用で成立していた挙動の遡及（findings が存在しない清算）に使う>"
-    }
+    },
+    "resettled": [
+      {
+        "_note": "任意。既存の行為に witness を足したとき（acts-write.js witness-add）の清算スナップショット。行為の成立条件（手段・環境）が広がっただけで claim が変わらない周回に使う——行為を複製せず、既存エントリの witness.acceptance にアンカーを足し、ここに「いつ・どのプランで・どの witness を足したか」を積む。settled（初回清算）は不変のまま。手で書かない。",
+        "date": "<足した日 YYYY-MM-DD。成果物レビューの日>",
+        "project": "<plans/<project> のプロジェクト名>",
+        "acceptance": ["<このとき足した witness アンカー>"],
+        "devices": ["<任意。このとき行為を支えていた装置概念名>"],
+        "unitTests": ["<任意。<テストファイルパス>#<describe経路>>"]
+      }
+    ]
   },
 
-  "_required": "必須: id / actor / claim / witness.acceptance（1件以上） / settled.date / settled.project。任意: parent / context / settled.devices / settled.unitTests / settled.retro / settled.evidence。",
+  "_required": "必須: id / actor / claim / witness.acceptance（1件以上） / settled.date / settled.project。任意: parent / context / settled.devices / settled.unitTests / settled.retro / settled.evidence / resettled。",
 
-  "_settled_provenance": "settled の来歴は3形。通常登記: retro・evidence とも省略、date は成果物レビューの日。アーカイブ遡及: retro: true、date は元の findings の日時。実使用遡及: retro: true + evidence: in-use、date は登記日。",
+  "_settled_provenance": "settled の来歴は3形。通常登記: retro・evidence とも省略、date は成果物レビューの日。アーカイブ遡及: retro: true、date は元の findings の日時。実使用遡及: retro: true + evidence: in-use、date は登記日。resettled は初回清算とは別の系列で、witness を足すたびに一件ずつ積む。",
 
-  "_supersede_note": "supersede（再清算による置き換え）は未設計。v1 は防衛線のみ: 同一 actor で claim が同一・近接する既存エントリを acts-write.js が検出したら、書き込まずに候補を提示して止まる。上書きの判断はユーザーに諮る。この停止の実例が supersede 本設計の材料になる。"
+  "_supersede_note": "claim の置き換え（supersede）は未設計。v1 は防衛線のみ: 同一 actor で claim が同一・近接する既存エントリを acts-write.js が検出したら、書き込まずに候補を提示して止まる。停止したとき、既存の行為が新しい手段・環境でも成立しただけ（claim は同じ）なら witness-add で既存エントリに witness を足す。claim そのものを書き換えたい場合の判断はユーザーに諮る。その停止の実例が supersede 本設計の材料になる。"
 }

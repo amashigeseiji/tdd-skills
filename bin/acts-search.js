@@ -70,6 +70,9 @@ function formatAct(act, byId, summary = false) {
     if (s.devices && s.devices.length > 0) lines.push(`**devices:** ${s.devices.join(', ')}`);
     if (s.unitTests && s.unitTests.length > 0) lines.push(`**unitTests:** ${s.unitTests.join(', ')}`);
   }
+  for (const rs of act.resettled ?? []) {
+    lines.push(`**resettled:** ${rs.date ?? '?'} / ${rs.project ?? '?'} — ${(rs.acceptance ?? []).join(', ')}`);
+  }
   return lines.join('\n');
 }
 
