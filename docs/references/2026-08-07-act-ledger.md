@@ -129,3 +129,10 @@ promote の実態の誤認である。promote は現行 tdd-feedback で**毎周
 （同一プランへの戻しに向かう周でも、着地した行為は登記してよい）。
 「feedback が実使用と照合してループを閉じた時点で清算される」という意味論は変わらない —
 変わるのは、その照合が毎周行われているという事実の認識である。
+
+## 追記（2026-08-17）: witness の複数化と追加操作
+
+未決点の「witness の複数化」は `witness.acceptance` を配列にして解決済み。
+既存の行為に witness を足す操作（`acts-write.js witness-add`）と、その清算スナップショットを `resettled` 配列に積む形を追加した。
+`settled` は不変のまま。claim の置き換え（supersede）は引き続き未設計。
+経緯は `docs/notes/2026-08-17-new-act-check-in-problem.md`。
